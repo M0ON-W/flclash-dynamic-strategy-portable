@@ -1,0 +1,23 @@
+{
+  "package": "FlClash-Dynamic-Strategy-Portable",
+  "version": "1.0.0",
+  "target": "Windows 10/11 x64",
+  "tested_with": {
+    "flclash": "0.8.96+2026081701",
+    "mihomo": "1.19.30",
+    "winsw": "2.12.0",
+    "python": "3.12.7",
+    "pyyaml": "6.0.3"
+  },
+  "scheduled_scan_minutes": 20,
+  "group_healthcheck_minutes": 10,
+  "stable_window_days": 7,
+  "stable_minimum_days": 3,
+  "stable_minimum_samples": 216,
+  "gemini_candidate_discovery": "automatic-per-node-region-page-check",
+  "contains_subscription_data": false,
+  "binary_sha256": {
+    "bin/mihomo.exe": "F55B3028D9160BEB9044F21B05DD7405B46524614A19642D6291492F5F985761",
+    "bin/FlClashMihomoService.exe": "05B82D46AD331CC16BDC00DE5C6332C1EF818DF8CEEFCD49C726553209B3A0DA"
+  }
+}
