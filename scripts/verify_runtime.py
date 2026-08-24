@@ -69,7 +69,7 @@ def main() -> int:
 
     try:
         proxies = request_json("http://127.0.0.1:9090", "/proxies", runtime_config).get("proxies") or {}
-        expected_groups = {"净选", "稳净", "极速", "__谷歌AI"}
+        expected_groups = {"净选", "稳净", "极速", "__谷歌AI", "__OpenAI"}
         present = sorted(expected_groups & set(proxies))
         checks["flclash_groups"] = present
         if set(present) != expected_groups:

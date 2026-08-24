@@ -4,7 +4,6 @@ import argparse
 import concurrent.futures
 import copy
 import datetime as dt
-import html
 import ipaddress
 import json
 import os
@@ -60,20 +59,44 @@ GROUP_CLEAN = "净选"
 GROUP_STABLE = "稳净"
 GROUP_FAST = "极速"
 GROUP_GOOGLE_AI = "__谷歌AI"
+GROUP_OPENAI = "__OpenAI"
 MANAGED_GROUPS = [GROUP_CLEAN, GROUP_STABLE, GROUP_FAST]
-RUNTIME_GROUPS = MANAGED_GROUPS + [GROUP_GOOGLE_AI]
+RUNTIME_GROUPS = MANAGED_GROUPS + [GROUP_GOOGLE_AI, GROUP_OPENAI]
+
+OPENAI_DOMAIN_SUFFIXES = (
+    "openai.com",
+    "chatgpt.com",
+    "oaistatic.com",
+    "oaiusercontent.com",
+)
+
+RULESET_OPENAI = "__managed-openai"
+RULESET_GOOGLE_GEMINI = "__managed-google-gemini"
+RULESET_AI_NON_CN = "__managed-category-ai-non-cn"
+RULESET_GOOGLE = "__managed-google"
+RULESET_MICROSOFT_CN = "__managed-microsoft-cn"
+RULESET_MICROSOFT = "__managed-microsoft"
+RULESET_APPLE_CN = "__managed-apple-cn"
+RULESET_APPLE = "__managed-apple"
+RULESET_CN = "__managed-cn"
+RULESET_GEOIP_CN = "__managed-geoip-cn"
+META_RULESET_BASE = "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo"
+MANAGED_RULESETS = {
+    RULESET_OPENAI: ("geosite/openai.mrs", "domain"),
+    RULESET_GOOGLE_GEMINI: ("geosite/google-gemini.mrs", "domain"),
+    RULESET_AI_NON_CN: ("geosite/category-ai-!cn.mrs", "domain"),
+    RULESET_GOOGLE: ("geosite/google.mrs", "domain"),
+    RULESET_MICROSOFT_CN: ("geosite/microsoft@cn.mrs", "domain"),
+    RULESET_MICROSOFT: ("geosite/microsoft.mrs", "domain"),
+    RULESET_APPLE_CN: ("geosite/apple-cn.mrs", "domain"),
+    RULESET_APPLE: ("geosite/apple.mrs", "domain"),
+    RULESET_CN: ("geosite/cn.mrs", "domain"),
+    RULESET_GEOIP_CN: ("geoip/cn.mrs", "ipcidr"),
+}
 
 INFO_NODE_RE = re.compile(
     r"(剩余|流量|套餐|官网|订阅|到期|重置|客服|公告|更新|实时负载|使用说明|"
     r"traffic|expire|website|reset|official|subscribe)",
-    re.IGNORECASE,
-)
-GEMINI_UNSUPPORTED_RE = re.compile(
-    r"(not\s+(currently\s+)?supported\s+in\s+your\s+(country|region)|"
-    r"isn['’]?t\s+(currently\s+)?(available|supported)\s+in\s+your\s+(country|region)|"
-    r"not\s+(currently\s+)?available\s+in\s+your\s+(country|region)|"
-    r"你所在的(国家|國家)[/／](地区|地區)目前(不支持|不支援)|"
-    r"你所在的(国家|國家)或(地区|地區)目前(不支持|不支援))",
     re.IGNORECASE,
 )
 
@@ -210,7 +233,7 @@ def group_config(name: str, members: list[str]) -> dict:
     proxies = members or ["REJECT"]
     common = {
         "name": name,
-        "type": "fallback" if name in {GROUP_FAST, GROUP_GOOGLE_AI} else "url-test",
+        "type": "fallback" if name in {GROUP_FAST, GROUP_GOOGLE_AI, GROUP_OPENAI} else "url-test",
         "proxies": proxies,
         "interval": 600,
         "lazy": False,
@@ -241,7 +264,7 @@ def group_config(name: str, members: list[str]) -> dict:
                 "expected-status": "200",
             }
         )
-    else:
+    elif name == GROUP_GOOGLE_AI:
         common.update(
             {
                 "url": "https://www.gstatic.com/generate_204",
@@ -249,7 +272,29 @@ def group_config(name: str, members: list[str]) -> dict:
                 "hidden": True,
             }
         )
+    else:
+        common.update(
+            {
+                "url": "https://api.openai.com/v1/models",
+                "expected-status": "401",
+                "hidden": True,
+            }
+        )
     return common
+
+
+def managed_rule_providers() -> dict[str, dict]:
+    return {
+        name: {
+            "type": "http",
+            "url": f"{META_RULESET_BASE}/{relative_path}",
+            "interval": 86400,
+            "proxy": GROUP_FAST,
+            "behavior": behavior,
+            "format": "mrs",
+        }
+        for name, (relative_path, behavior) in MANAGED_RULESETS.items()
+    }
 
 
 def managed_rules(default_group: str) -> list[str]:
@@ -263,20 +308,37 @@ def managed_rules(default_group: str) -> list[str]:
         "IP-CIDR,224.0.0.0/4,DIRECT,no-resolve",
         "IP-CIDR6,::1/128,DIRECT,no-resolve",
         "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
-        f"DOMAIN-SUFFIX,openai.com,{GROUP_CLEAN}",
-        f"DOMAIN-SUFFIX,chatgpt.com,{GROUP_CLEAN}",
-        f"DOMAIN-SUFFIX,oaistatic.com,{GROUP_CLEAN}",
-        f"DOMAIN-SUFFIX,oaiusercontent.com,{GROUP_CLEAN}",
+        f"DOMAIN-SUFFIX,openai.com,{GROUP_OPENAI}",
+        f"DOMAIN-SUFFIX,chatgpt.com,{GROUP_OPENAI}",
+        f"DOMAIN-SUFFIX,oaistatic.com,{GROUP_OPENAI}",
+        f"DOMAIN-SUFFIX,oaiusercontent.com,{GROUP_OPENAI}",
+        f"RULE-SET,{RULESET_OPENAI},{GROUP_OPENAI}",
+        f"DOMAIN,webchannel-robinfrontend-pa.googleapis.com,{GROUP_GOOGLE_AI}",
         f"DOMAIN-SUFFIX,google.com,{GROUP_GOOGLE_AI}",
         f"DOMAIN-SUFFIX,googleapis.com,{GROUP_GOOGLE_AI}",
         f"DOMAIN-SUFFIX,gstatic.com,{GROUP_GOOGLE_AI}",
+        f"RULE-SET,{RULESET_GOOGLE_GEMINI},{GROUP_GOOGLE_AI}",
+        f"RULE-SET,{RULESET_AI_NON_CN},{GROUP_CLEAN}",
+        f"RULE-SET,{RULESET_GOOGLE},{GROUP_GOOGLE_AI}",
+        f"RULE-SET,{RULESET_MICROSOFT_CN},DIRECT",
+        f"RULE-SET,{RULESET_APPLE_CN},DIRECT",
+        "DOMAIN-SUFFIX,apple.com.cn,DIRECT",
+        "DOMAIN-SUFFIX,icloud.com.cn,DIRECT",
+        f"RULE-SET,{RULESET_MICROSOFT},{GROUP_FAST}",
+        f"RULE-SET,{RULESET_APPLE},{GROUP_FAST}",
+        f"RULE-SET,{RULESET_CN},DIRECT",
         f"DOMAIN-SUFFIX,cloudflare.com,{GROUP_CLEAN}",
+        f"RULE-SET,{RULESET_GEOIP_CN},DIRECT,no-resolve",
         f"MATCH,{default_group}",
     ]
 
 
 def strict_dns(dns_proxy: str | None = None) -> dict:
     route = f"#{dns_proxy}" if dns_proxy else ""
+    domestic_doh = [
+        f"https://223.5.5.5/dns-query#{GROUP_FAST}&ecs=1.0.1.0/24&ecs-override=true",
+        f"https://223.6.6.6/dns-query#{GROUP_FAST}&ecs=1.0.1.0/24&ecs-override=true",
+    ]
     return {
         "enable": True,
         "listen": "127.0.0.1:1053",
@@ -300,7 +362,13 @@ def strict_dns(dns_proxy: str | None = None) -> dict:
             "https://8.8.8.8/dns-query",
         ],
         "fallback": [],
-        "nameserver-policy": {},
+        "nameserver-policy": {
+            f"rule-set:{RULESET_CN}": domestic_doh,
+            f"rule-set:{RULESET_MICROSOFT_CN}": domestic_doh,
+            f"rule-set:{RULESET_APPLE_CN}": domestic_doh,
+            "+.apple.com.cn": domestic_doh,
+            "+.icloud.com.cn": domestic_doh,
+        },
     }
 
 
@@ -313,25 +381,54 @@ def build_effective_config(raw: dict, state: dict, tun_enable: bool = True) -> d
     clean = sanitize_members(memberships.get(GROUP_CLEAN, []), allowed)
     stable = sanitize_members(memberships.get(GROUP_STABLE, []), allowed)
     fast = sanitize_members(memberships.get(GROUP_FAST, []), allowed)
-    google_ai = sanitize_members(state.get("gemini_members", []), allowed)
+    google_ai = sanitize_members(
+        state.get("gemini_members") or state.get("gemini_verified_members") or [],
+        allowed,
+    )
+    openai = sanitize_members(
+        state.get("openai_members") or state.get("openai_verified_members") or [],
+        allowed,
+    )
     if not fast:
         fast = names[:20]
+    if not clean:
+        clean = sanitize_members(google_ai + openai, allowed)
+    if not stable:
+        stable = clean
     if not google_ai:
         google_ai = clean
+    if not openai:
+        openai = clean
 
     config["proxy-groups"] = [
         group_config(GROUP_CLEAN, clean),
         group_config(GROUP_STABLE, stable),
         group_config(GROUP_FAST, fast),
         group_config(GROUP_GOOGLE_AI, google_ai),
+        group_config(GROUP_OPENAI, openai),
     ]
-    default_group = GROUP_STABLE if stable and not state.get("stable_provisional") else GROUP_FAST
+    existing_rule_providers = config.get("rule-providers")
+    rule_providers = (
+        copy.deepcopy(existing_rule_providers)
+        if isinstance(existing_rule_providers, dict)
+        else {}
+    )
+    rule_providers.update(managed_rule_providers())
+    config["rule-providers"] = rule_providers
+    default_group = (
+        GROUP_STABLE
+        if memberships.get(GROUP_STABLE) and not state.get("stable_provisional")
+        else GROUP_FAST
+    )
     config["rules"] = managed_rules(default_group)
     config["allow-lan"] = False
     config["bind-address"] = "127.0.0.1"
     config["ipv6"] = False
     config["tcp-concurrent"] = True
     config["unified-delay"] = True
+    config["keep-alive-interval"] = 15
+    config["keep-alive-idle"] = 15
+    config["disable-keep-alive"] = False
     config["external-controller"] = "127.0.0.1:9090"
     config["dns"] = strict_dns(state.get("dns_proxy"))
     tun = dict(config.get("tun") or {})
@@ -419,12 +516,20 @@ def write_service_config(state: dict, raw: dict | None = None) -> dict:
 
 def generate_override_script(state: dict) -> str:
     memberships = state.get("memberships") or {}
-    clean = json.dumps(memberships.get(GROUP_CLEAN, []), ensure_ascii=False)
-    stable = json.dumps(memberships.get(GROUP_STABLE, []), ensure_ascii=False)
+    google_ai_members = state.get("gemini_members") or state.get("gemini_verified_members") or []
+    openai_members = state.get("openai_members") or state.get("openai_verified_members") or []
+    clean_members = memberships.get(GROUP_CLEAN) or list(
+        dict.fromkeys(google_ai_members + openai_members)
+    )
+    stable_members = memberships.get(GROUP_STABLE) or clean_members
+    clean = json.dumps(clean_members, ensure_ascii=False)
+    stable = json.dumps(stable_members, ensure_ascii=False)
     fast = json.dumps(memberships.get(GROUP_FAST, []), ensure_ascii=False)
-    google_ai = json.dumps(state.get("gemini_members", []), ensure_ascii=False)
+    google_ai = json.dumps(google_ai_members, ensure_ascii=False)
+    openai = json.dumps(openai_members, ensure_ascii=False)
     default_group = GROUP_STABLE if memberships.get(GROUP_STABLE) and not state.get("stable_provisional") else GROUP_FAST
     rules = json.dumps(managed_rules(default_group), ensure_ascii=False)
+    rule_providers = json.dumps(managed_rule_providers(), ensure_ascii=False)
     dns = json.dumps(strict_dns(state.get("dns_proxy")), ensure_ascii=False)
     tun_enabled = "true" if state.get("tun_enabled") else "false"
     return f'''/* Managed by FlClash strategy_manager.py. */
@@ -434,6 +539,7 @@ function main(config) {{
   var stableMembers = {stable};
   var fastMembers = {fast};
   var googleAiMembers = {google_ai};
+  var openaiMembers = {openai};
   var proxyNames = [];
   var rawProxies = Array.isArray(config.proxies) ? config.proxies : [];
   var infoPattern = /(剩余|流量|套餐|官网|订阅|到期|重置|客服|公告|更新|实时负载|使用说明|traffic|expire|website|reset|official|subscribe)/i;
@@ -452,14 +558,22 @@ function main(config) {{
   stableMembers = validMembers(stableMembers);
   fastMembers = validMembers(fastMembers);
   googleAiMembers = validMembers(googleAiMembers);
+  openaiMembers = validMembers(openaiMembers);
   if (!fastMembers.length) fastMembers = proxyNames.slice(0, 20);
   if (!googleAiMembers.length) googleAiMembers = cleanMembers.slice();
+  if (!openaiMembers.length) openaiMembers = cleanMembers.slice();
   function membersOrReject(items) {{ return items.length ? items : ['REJECT']; }}
+  var managedRuleProviders = {rule_providers};
+  var existingRuleProviders = config['rule-providers'];
+  if (!existingRuleProviders || typeof existingRuleProviders !== 'object' || Array.isArray(existingRuleProviders)) existingRuleProviders = {{}};
+  for (var providerName in managedRuleProviders) existingRuleProviders[providerName] = managedRuleProviders[providerName];
+  config['rule-providers'] = existingRuleProviders;
   config['proxy-groups'] = [
     {{name:'{GROUP_CLEAN}',type:'url-test',proxies:membersOrReject(cleanMembers),url:'https://www.gstatic.com/generate_204','expected-status':'204',interval:600,lazy:false,timeout:8000,'max-failed-times':2,tolerance:40,hidden:false}},
     {{name:'{GROUP_STABLE}',type:'url-test',proxies:membersOrReject(stableMembers),url:'https://www.gstatic.com/generate_204','expected-status':'204',interval:600,lazy:false,timeout:8000,'max-failed-times':2,tolerance:30,hidden:false}},
     {{name:'{GROUP_FAST}',type:'fallback',proxies:membersOrReject(fastMembers),url:'https://speed.cloudflare.com/__down?bytes=131072','expected-status':'200',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:false}},
-    {{name:'{GROUP_GOOGLE_AI}',type:'fallback',proxies:membersOrReject(googleAiMembers),url:'https://www.gstatic.com/generate_204','expected-status':'204',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:true}}
+    {{name:'{GROUP_GOOGLE_AI}',type:'fallback',proxies:membersOrReject(googleAiMembers),url:'https://www.gstatic.com/generate_204','expected-status':'204',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:true}},
+    {{name:'{GROUP_OPENAI}',type:'fallback',proxies:membersOrReject(openaiMembers),url:'https://api.openai.com/v1/models','expected-status':'401',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:true}}
   ];
   config.rules = {rules};
   config['allow-lan'] = false;
@@ -467,6 +581,9 @@ function main(config) {{
   config.ipv6 = false;
   config['tcp-concurrent'] = true;
   config['unified-delay'] = true;
+  config['keep-alive-interval'] = 15;
+  config['keep-alive-idle'] = 15;
+  config['disable-keep-alive'] = false;
   config.dns = {dns};
   var tun = config.tun && typeof config.tun === 'object' ? config.tun : {{}};
   tun.enable = {tun_enabled};
@@ -556,25 +673,13 @@ def update_preferences(state: dict, enable_tun: bool | None = None) -> None:
     write_json(PREFERENCES, outer)
 
 
-def controller_headers(config_path: Path) -> dict[str, str]:
-    headers = {"Content-Type": "application/json"}
-    try:
-        config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
-        secret = str(config.get("secret") or "")
-        if secret:
-            headers["Authorization"] = f"Bearer {secret}"
-    except (OSError, ValueError, yaml.YAMLError):
-        pass
-    return headers
-
-
 def controller_request(path: str, method: str = "GET", payload: dict | None = None, timeout: float = 10):
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         CONTROLLER + path,
         data=data,
         method=method,
-        headers=controller_headers(RUNTIME_CONFIG),
+        headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         body = response.read()
@@ -592,7 +697,7 @@ def service_controller_request(
         SERVICE_CONTROLLER + path,
         data=data,
         method=method,
-        headers=controller_headers(SERVICE_CONFIG),
+        headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         body = response.read()
@@ -605,6 +710,35 @@ def service_controller_online() -> bool:
         return status == 200
     except Exception:
         return False
+
+
+def controller_has_openai_connections(request_func) -> bool:
+    try:
+        _, body = request_func("/connections", timeout=5)
+        connections = json.loads(body).get("connections") or []
+    except Exception:
+        return False
+    for connection in connections:
+        metadata = connection.get("metadata") or {}
+        hosts = (
+            metadata.get("host"),
+            metadata.get("sniffHost"),
+            metadata.get("destinationIP"),
+        )
+        for host in hosts:
+            normalized = str(host or "").lower().rstrip(".")
+            if any(
+                normalized == suffix or normalized.endswith("." + suffix)
+                for suffix in OPENAI_DOMAIN_SUFFIXES
+            ):
+                return True
+    return False
+
+
+def openai_connections_active() -> bool:
+    return controller_has_openai_connections(controller_request) or controller_has_openai_connections(
+        service_controller_request
+    )
 
 
 def sync_service_config(state: dict, raw: dict | None = None) -> dict:
@@ -688,9 +822,14 @@ def mixed_port_health(expect_openai: bool) -> tuple[bool, dict]:
         checks["gemini"] = ("https://gemini.google.com/app", {200, 301, 302, 303, 307, 308})
     outcomes = {}
     for label, (url, expected) in checks.items():
-        probe = curl_probe(7890, url, timeout=12)
-        outcomes[label] = probe.get("status")
-        if not probe.get("ok") or probe.get("status") not in expected:
+        for attempt in range(3):
+            probe = curl_probe(7890, url, timeout=12)
+            outcomes[label] = probe.get("status")
+            if probe.get("ok") and probe.get("status") in expected:
+                break
+            if attempt < 2:
+                time.sleep(0.6)
+        else:
             return False, outcomes
     return True, outcomes
 
@@ -784,18 +923,6 @@ def curl_probe(port: int, url: str, capture_body: bool = False, timeout: int = 1
         return {"ok": False, "error": str(exc), "elapsed_ms": int((time.perf_counter() - started) * 1000)}
 
 
-def gemini_region_supported(probe: dict) -> bool:
-    if probe.get("status") not in {200, 301, 302, 303, 307, 308}:
-        return False
-    body = html.unescape(str(probe.get("body") or ""))
-    body = re.sub(
-        r"\\u([0-9a-fA-F]{4})",
-        lambda match: chr(int(match.group(1), 16)),
-        body,
-    )
-    return not bool(GEMINI_UNSUPPORTED_RE.search(body))
-
-
 def probe_node(index: int, name: str, listener_port_base: int = LISTENER_PORT_BASE) -> dict:
     port = listener_port_base + index
     ip_result = curl_probe(port, "https://api.ipify.org?format=json", capture_body=True)
@@ -810,17 +937,14 @@ def probe_node(index: int, name: str, listener_port_base: int = LISTENER_PORT_BA
         "cloudflare": curl_probe(port, "https://cp.cloudflare.com/generate_204"),
         "google": curl_probe(port, "https://www.gstatic.com/generate_204"),
         "openai": curl_probe(port, "https://api.openai.com/v1/models"),
-        "gemini": curl_probe(
-            port, "https://gemini.google.com/app", capture_body=True, timeout=18
-        ),
+        "gemini": curl_probe(port, "https://gemini.google.com/app"),
         "speed": curl_probe(port, "https://speed.cloudflare.com/__down?bytes=131072", timeout=15),
     }
-    gemini_supported = gemini_region_supported(probes["gemini"])
     service_ok = (
         probes["cloudflare"].get("status") == 204
         and probes["google"].get("status") == 204
         and probes["openai"].get("status") == 401
-        and gemini_supported
+        and probes["gemini"].get("status") in {200, 301, 302, 303, 307, 308}
     )
     online = bool(exit_ip) and probes["cloudflare"].get("status") == 204
     return {
@@ -828,7 +952,6 @@ def probe_node(index: int, name: str, listener_port_base: int = LISTENER_PORT_BA
         "exit_ip": exit_ip,
         "online": online,
         "service_ok": service_ok,
-        "gemini_supported": gemini_supported,
         "latency_ms": probes["cloudflare"].get("ttfb_ms"),
         "speed_mbps": round((probes["speed"].get("speed_bps") or 0) * 8 / 1_000_000, 3),
         "statuses": {key: value.get("status") for key, value in probes.items() if key != "speed"},
@@ -966,19 +1089,6 @@ def classify(
         histories[item["name"]] = history[-HISTORY_SAMPLES:]
         current[item["name"]] = item
 
-    verified_gemini = [
-        item["name"]
-        for item in observations
-        if item.get("online") and item.get("gemini_supported")
-    ]
-    if verified_gemini:
-        state["gemini_verified_members"] = verified_gemini
-    else:
-        state["gemini_verified_members"] = sanitize_members(
-            state.get("gemini_verified_members") or state.get("gemini_members") or [],
-            set(names),
-        )
-
     clean_ranked = sorted(
         [item for item in observations if item.get("strict_clean")],
         key=lambda item: (
@@ -987,6 +1097,17 @@ def classify(
             -(item.get("speed_mbps") or 0),
         ),
     )
+    openai_candidates = [
+        item["name"]
+        for item in clean_ranked
+        if (item.get("statuses") or {}).get("openai") == 401
+    ]
+    previous_openai = sanitize_members(
+        state.get("openai_members") or [], set(openai_candidates)
+    )
+    state["openai_members"] = previous_openai + [
+        name for name in openai_candidates if name not in previous_openai
+    ]
 
     stable_ranked = []
     fast_ranked = []
@@ -1269,7 +1390,10 @@ def scan_existing(listener_port_base: int = LISTENER_PORT_BASE) -> dict:
     write_json(STATE_FILE, state)
     ensure_script_binding(generate_override_script(state))
     update_preferences(state)
-    sync_service_config(state)
+    write_service_config(state)
+    state["pending_runtime_apply"] = True
+    write_json(STATE_FILE, state)
+    status["runtime_apply_deferred"] = True
     status.update(
         {
             "scan_performed": True,
@@ -1331,7 +1455,7 @@ def safe_apply() -> dict:
     raw = load_profile(current_profile_id())
     original_target = current_global_target()
     names = [str(proxy["name"]) for proxy in candidate_proxies(raw)]
-    restorable_targets = set(names) | set(MANAGED_GROUPS) | {"DIRECT"}
+    restorable_targets = set(names) | set(RUNTIME_GROUPS) | {"DIRECT"}
     if original_target not in restorable_targets:
         raise RuntimeError("current GLOBAL target cannot be restored after managed reload")
     choose_dns_proxy(state, names)
@@ -1370,26 +1494,41 @@ def safe_apply() -> dict:
     results = {}
     success = False
     try:
+        deadline = time.time() + 40
+        while time.time() < deadline and not managed_rule_providers_ready(controller_request):
+            time.sleep(1)
+        if not managed_rule_providers_ready(controller_request):
+            raise RuntimeError("managed rule providers failed to load")
+        results["规则集"] = {"ok": True, "count": len(MANAGED_RULESETS)}
         time.sleep(1)
         select_global(original_target)
         time.sleep(0.4)
         original_ok, original_checks = mixed_port_health(expect_openai=False)
         results["原节点"] = {"ok": original_ok, "checks": original_checks}
         if not original_ok:
-            raise RuntimeError("original node failed after candidate reload")
-        for group in [GROUP_FAST, GROUP_CLEAN, GROUP_STABLE, GROUP_GOOGLE_AI]:
-            members = state.get("gemini_members") if group == GROUP_GOOGLE_AI else (state.get("memberships") or {}).get(group)
+            raise RuntimeError(
+                f"original node failed after candidate reload: {original_checks}"
+            )
+        for group in [GROUP_FAST, GROUP_CLEAN, GROUP_STABLE, GROUP_GOOGLE_AI, GROUP_OPENAI]:
+            if group == GROUP_GOOGLE_AI:
+                members = state.get("gemini_members")
+            elif group == GROUP_OPENAI:
+                members = state.get("openai_members")
+            else:
+                members = (state.get("memberships") or {}).get(group)
             if not members:
                 continue
             select_global(group)
             time.sleep(0.7)
-            ok, checks = mixed_port_health(expect_openai=False)
+            ok, checks = mixed_port_health(expect_openai=group == GROUP_OPENAI)
             results[group] = {"ok": ok, "checks": checks}
             if not ok:
                 if group == GROUP_STABLE and state.get("stable_provisional"):
                     results[group]["warning"] = "provisional stable group is not a default route"
                     continue
-                raise RuntimeError(f"group {group} failed connectivity verification")
+                raise RuntimeError(
+                    f"group {group} failed connectivity verification: {checks}"
+                )
         success = True
     finally:
         if success:
@@ -1416,6 +1555,8 @@ def safe_apply() -> dict:
     if not success:
         raise RuntimeError("candidate was rolled back after connectivity failure")
     sync_service_config(state, raw)
+    state.pop("pending_runtime_apply", None)
+    write_json(STATE_FILE, state)
     status = {
         "time": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "safe_mode": f"preserve-{original_mode}-and-tun-{'on' if original_tun else 'off'}",
@@ -1429,11 +1570,25 @@ def safe_apply() -> dict:
     return status
 
 
+def managed_rule_providers_ready(request) -> bool:
+    try:
+        _, body = request("/providers/rules", timeout=5)
+        providers = json.loads(body).get("providers") or {}
+        return all(
+            name in providers and int((providers.get(name) or {}).get("ruleCount", 0)) > 0
+            for name in MANAGED_RULESETS
+        )
+    except Exception:
+        return False
+
+
 def managed_runtime_ready() -> bool:
     try:
         _, body = controller_request("/proxies", timeout=5)
         proxies = (json.loads(body).get("proxies") or {})
-        return all(name in proxies for name in RUNTIME_GROUPS)
+        return all(name in proxies for name in RUNTIME_GROUPS) and managed_rule_providers_ready(
+            controller_request
+        )
     except Exception:
         return False
 
@@ -1447,7 +1602,11 @@ def service_runtime_ready(state: dict) -> bool:
         tun_matches = bool((runtime.get("tun") or {}).get("enable")) == bool(
             state.get("service_tun_enabled")
         )
-        return tun_matches and all(name in proxies for name in RUNTIME_GROUPS)
+        return (
+            tun_matches
+            and all(name in proxies for name in RUNTIME_GROUPS)
+            and managed_rule_providers_ready(service_controller_request)
+        )
     except Exception:
         return False
 
@@ -1479,21 +1638,33 @@ def scheduled_safe() -> dict:
     ensure_script_binding(generate_override_script(state))
     update_preferences(state)
     if service_controller_online() and not service_runtime_ready(state):
-        sync_service_config(state)
+        if openai_connections_active():
+            write_service_config(state)
+            state["pending_runtime_apply"] = True
+            write_json(STATE_FILE, state)
+        else:
+            sync_service_config(state)
     if not controller_online():
         due = (
             int(time.time()) - int(state.get("last_full_scan", 0))
             >= FULL_SCAN_SECONDS - SCAN_DUE_TOLERANCE_SECONDS
         )
         if service_controller_online() and due:
-            sync_service_config(state)
             scan_status = scan_existing(SERVICE_LISTENER_PORT_BASE)
             updated_state = load_json(STATE_FILE, state)
+            if openai_connections_active():
+                service_apply = {"deferred": True, "reason": "active OpenAI connections"}
+            else:
+                sync_service_config(updated_state)
+                updated_state.pop("pending_runtime_apply", None)
+                write_json(STATE_FILE, updated_state)
+                service_apply = {"applied": True}
             status = {
                 "time": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
                 "flclash_controller_online": False,
                 "service_controller_online": True,
                 "scan": scan_status,
+                "service_apply": service_apply,
                 "bindings_preserved": True,
                 "stable_progress": stable_progress(updated_state),
             }
@@ -1511,12 +1682,28 @@ def scheduled_safe() -> dict:
         return status
 
     if not managed_runtime_ready():
-        safe_apply()
+        if openai_connections_active():
+            state["pending_runtime_apply"] = True
+            write_json(STATE_FILE, state)
+        else:
+            safe_apply()
     due = (
         int(time.time()) - int(state.get("last_full_scan", 0))
         >= FULL_SCAN_SECONDS - SCAN_DUE_TOLERANCE_SECONDS
     )
     if not due:
+        if state.get("pending_runtime_apply") and not openai_connections_active():
+            apply_status = safe_apply()
+            updated_state = load_json(STATE_FILE, state)
+            status = {
+                "time": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+                "scan_performed": False,
+                "pending_apply_completed": True,
+                "apply": apply_status,
+                "stable_progress": stable_progress(updated_state),
+            }
+            write_json(STATUS_FILE, status)
+            return status
         status = {
             "time": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "controller_online": True,
@@ -1530,7 +1717,17 @@ def scheduled_safe() -> dict:
         return status
 
     scan_status = scan_existing()
-    apply_status = safe_apply()
+    if openai_connections_active():
+        updated_state = load_json(STATE_FILE, state)
+        updated_state["pending_runtime_apply"] = True
+        write_json(STATE_FILE, updated_state)
+        apply_status = {
+            "deferred": True,
+            "reason": "active OpenAI connections",
+        }
+        log("runtime apply deferred; active OpenAI connections preserved")
+    else:
+        apply_status = safe_apply()
     updated_state = load_json(STATE_FILE, state)
     status = {
         "time": dt.datetime.now().astimezone().isoformat(timespec="seconds"),

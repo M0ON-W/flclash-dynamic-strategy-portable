@@ -7,7 +7,9 @@ This package reproduces the FlClash dynamic-routing project on a compatible Wind
 ## Features
 
 - Three visible Chinese policy groups: `净选` (clean), `稳净` (stable and clean), and `极速` (fast).
-- A hidden `__谷歌AI` group that keeps Google and Gemini on a consistent, region-checked egress pool.
+- Hidden AI egress groups (`__谷歌AI` and `__OpenAI`) with region restriction checks and active connection preservation.
+- Granular rule-provider routing via MetaCubeX MRS: AI & Google through clean groups, Microsoft/Apple China & Chinese domestic services (WeChat, Bilibili, Taobao) DIRECT, and international traffic through Fast.
+- Domestic DNS split routing: AliDNS DoH routed via proxy with synthetic ECS for CDN performance and privacy.
 - Parallel node availability, service compatibility, latency, short-throughput, and egress-risk checks every 20 minutes.
 - Sequential 1 MiB throughput measurements for Gemini candidates to avoid self-interference.
 - A seven-day rolling history; `稳净` requires at least 216 samples over three days before becoming mature.
