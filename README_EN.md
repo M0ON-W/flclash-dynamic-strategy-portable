@@ -7,11 +7,12 @@ This package reproduces the FlClash dynamic-routing project on a compatible Wind
 ## Features
 
 - Three visible Chinese policy groups: `净选` (clean), `稳净` (stable and clean), and `极速` (fast).
-- Hidden AI egress groups (`__谷歌AI` and `__OpenAI`) with region restriction checks and active connection preservation.
+- Hidden AI egress groups (`__谷歌AI` and `__OpenAI`). Google candidates must repeatedly pass Search without a regional redirect, GStatic, Google Accounts, and Gemini checks; hot reloads are deferred while Google or OpenAI connections are active.
 - Granular rule-provider routing via MetaCubeX MRS: AI & Google through clean groups, Microsoft/Apple China & Chinese domestic services (WeChat, Bilibili, Taobao) DIRECT, and international traffic through Fast.
-- Domestic DNS split routing: AliDNS DoH routed via proxy with synthetic ECS for CDN performance and privacy.
+- Rule-aware DNS routing: external DoH uses the selected proxy, while domestic domains use AliDNS DoH through `极速`; no synthetic ECS or system DNS upstream is used.
 - Parallel node availability, service compatibility, latency, short-throughput, and egress-risk checks every 20 minutes.
-- Sequential 1 MiB throughput measurements for Gemini candidates to avoid self-interference.
+- Bounded-parallel 1 MiB throughput measurements for Google/Gemini candidates, with two consecutive validation passes and same-exit-IP standby preference.
+- A scan-quality gate rejects low-availability or zero-member results. Failed candidate reloads restore runtime configuration, state, DNS preferences, and the override script together.
 - A seven-day rolling history; `稳净` requires at least 216 samples over three days before becoming mature.
 - Fake-IP DNS, DoH upstreams, rule-aware DNS routing, disabled IPv6, and TUN interception of TCP/UDP port 53.
 - An independent LocalSystem Mihomo service with automatic startup, failure recovery, and its own `MihomoSvc` TUN adapter.

@@ -1,6 +1,6 @@
 {
   "package": "FlClash-Dynamic-Strategy-Portable",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "target": "Windows 10/11 x64",
   "tested_with": {
     "flclash": "0.8.96+2026081701",
@@ -14,7 +14,7 @@
   "stable_window_days": 7,
   "stable_minimum_days": 3,
   "stable_minimum_samples": 216,
-  "gemini_candidate_discovery": "automatic-per-node-region-page-check",
+  "gemini_candidate_discovery": "multi-endpoint-consecutive-validation",
   "contains_subscription_data": false,
   "binary_sha256": {
     "bin/mihomo.exe": "F55B3028D9160BEB9044F21B05DD7405B46524614A19642D6291492F5F985761",

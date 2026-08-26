@@ -155,7 +155,7 @@ if (-not (Test-Path -LiteralPath $installRecord)) {
 
 [pscustomobject]@{
     InstalledAt = (Get-Date).ToString('o')
-    PackageVersion = '1.0.0'
+    PackageVersion = '1.0.1'
     BackupPath = $backup
     Python = $pythonExe
     FlClash = $flClashExe
@@ -251,7 +251,7 @@ if (-not $SkipFlClashAutoStart) {
 
 [pscustomobject]@{
     InstalledAt = (Get-Date).ToString('o')
-    PackageVersion = '1.0.0'
+    PackageVersion = '1.0.1'
     BackupPath = $backup
     Python = $pythonExe
     FlClash = $flClashExe
