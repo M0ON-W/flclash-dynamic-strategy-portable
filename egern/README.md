@@ -19,7 +19,7 @@
 
 分流采用“极速优先”：PikPak、普通 Google、YouTube、Cloudflare 和国际 Apple/Microsoft 服务走 `极速`；只有 OpenAI、Gemini、Anthropic/Claude、Copilot 等对出口地区与 IP 风控更敏感的服务进入 `净选`。`极速`与安全池互不重叠，检测结果只保存在 Egern 的动态健康记录中，不会固定为某个节点；`稳净`保留为安全候选池的稳定型手动备选。
 
-当前机场订阅的 Trojan 节点未下发 UDP 字段，而 Egern 的可选布尔字段缺省为 `false`。生成私有版时会把当前 Trojan 节点转换为 Egern 原生格式，显式设置 `udp_relay: true` 与 `block_quic: false`；同名远程节点由本地修正版优先覆盖，新名称节点仍由原订阅加载。机场更换节点地址、密码或名称后，应在电脑上重新运行生成命令并重新导入，才能刷新本地 UDP 快照。
+当前机场订阅的 Trojan 节点未下发 UDP 字段，而 Egern 的可选布尔字段缺省为 `false`。生成私有版时会把当前 Trojan 节点转换为 Egern 原生格式，显式设置 `udp_relay: true` 与 `block_quic: false`，并在节点名末尾增加 `[UDP]`。三个实际流量策略组只匹配带此标记的本地修正版，避免 Egern 选中同名但未启用 UDP 的远程节点；原订阅仍保留用于刷新来源。机场更换节点地址、密码或名称后，应在电脑上重新运行生成命令并重新导入，才能刷新本地 UDP 快照。
 
 规则顺序固定为：必要放行和局域网 → AdvertisingLite 与广告 SDK → AI → Apple/Microsoft → 中国直连 → `PROXY`。错误的 `192.128.0.0/16` 已删除，链路本地地址使用 `169.254.0.0/16`。
 

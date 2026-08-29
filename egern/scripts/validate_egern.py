@@ -16,6 +16,7 @@ GROUP_TYPES = {"external", "auto_test", "smart", "select", "fallback", "load_bal
 BUILTINS = {"DIRECT", "REJECT"}
 INFO_RE = re.compile(r"(?:流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)", re.I)
 TAIWAN_B_RE = re.compile(r"台湾专线B", re.I)
+UDP_MARKER = " [UDP]"
 FORBIDDEN_MODULE_RE = re.compile(
     r"hostname\s*=\s*(?:%APPEND%\s*)?\*\s*(?:,|$)|"
     r"new\.vip\.weibo|weibo_vip\.js|del\(\.data\.payment\)|"
@@ -105,9 +106,13 @@ def validate_profile(path: Path, safe: bool) -> dict:
             require(body.get("udp_relay") is True, "本地 Trojan 节点未启用 UDP 转发")
             require(body.get("block_quic") is False, "本地 Trojan 节点必须允许 QUIC")
             require(all(body.get(key) not in (None, "") for key in ["name", "server", "port", "password"]), "本地 Trojan 节点字段不完整")
+            require(str(body["name"]).endswith(UDP_MARKER), "本地 UDP 修正版节点缺少可见标记")
             local_names.append(body["name"])
         require(len(local_names) == len(set(local_names)), "本地 Trojan 节点名称重复")
         require(groups["订阅"][1].get("policies") == local_names, "订阅组未完整引用 UDP 快照节点")
+        require(r"\[UDP\]$" in groups["净选"][1].get("filter", ""), "净选未隔离本地 UDP 修正版节点")
+        require(r"\[UDP\]$" in groups["稳净"][1].get("filter", ""), "稳净未隔离本地 UDP 修正版节点")
+        require(r"\[UDP\]$" in groups["极速"][1].get("filter", ""), "极速未隔离本地 UDP 修正版节点")
 
     rules = profile.get("rules") or []
     serialized_rules = [yaml.safe_dump(rule, allow_unicode=True) for rule in rules]

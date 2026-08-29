@@ -74,6 +74,7 @@ MICROSOFT_CN = [
 ]
 
 APPLE_CN = ["apple.com.cn", "icloud.com.cn"]
+UDP_MARKER = " [UDP]"
 
 
 def domain_rule(domain: str, policy: str, *, exact: bool = False) -> dict:
@@ -185,8 +186,12 @@ def build_dns() -> dict:
 
 
 def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | None = None) -> list[dict]:
-    clean_filter = "(?i)台湾专线B"
-    fast_filter = "^(?!.*(?:台湾专线B|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$"
+    if local_proxy_names:
+        clean_filter = r"(?i)台湾专线B.* \[UDP\]$"
+        fast_filter = r"^(?!.*(?:台湾专线B|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).* \[UDP\]$"
+    else:
+        clean_filter = "(?i)台湾专线B"
+        fast_filter = "^(?!.*(?:台湾专线B|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$"
     if local_proxy_names:
         subscription_group = {
             "fallback": {
@@ -296,12 +301,12 @@ def build_udp_trojan_snapshot(subscription: dict) -> list[dict]:
         required = ["name", "server", "port", "password"]
         if any(source.get(key) in (None, "") for key in required):
             raise ValueError(f"订阅中的第 {index} 个 Trojan 节点缺少必要字段")
-        name = str(source["name"])
-        if name in names:
+        source_name = str(source["name"])
+        if source_name in names:
             raise ValueError("订阅中的 Trojan 节点名称重复，无法安全覆盖")
-        names.add(name)
+        names.add(source_name)
         body = {
-            "name": name,
+            "name": f"{source_name}{UDP_MARKER}",
             "server": source["server"],
             "port": source["port"],
             "password": source["password"],
