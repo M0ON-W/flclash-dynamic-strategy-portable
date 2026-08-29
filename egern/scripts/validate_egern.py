@@ -53,6 +53,14 @@ def policy_groups(profile: dict) -> dict[str, tuple[str, dict]]:
     return groups
 
 
+def matching_rule_policy(rules: list[dict], kind: str, match: str) -> str | None:
+    for rule in rules:
+        body = rule.get(kind) if isinstance(rule, dict) else None
+        if isinstance(body, dict) and body.get("match") == match:
+            return body.get("policy")
+    return None
+
+
 def validate_profile(path: Path, safe: bool) -> dict:
     profile = load_yaml(path)
     require(profile.get("ipv6") is False, f"{path.name}: ipv6 必须关闭")
@@ -87,6 +95,13 @@ def validate_profile(path: Path, safe: bool) -> dict:
     service_index = next(i for i, item in enumerate(serialized_rules) if "Microsoft/Microsoft.yaml" in item)
     china_index = next(i for i, item in enumerate(serialized_rules) if "ChinaMaxNoIP" in item)
     require(0 < ad_index < ai_index < service_index < china_index < len(rules) - 1, "规则顺序不是放行→广告→AI→服务→中国→默认")
+    require(matching_rule_policy(rules, "domain_suffix", "openai.com") == "净选", "OpenAI 必须进入净选")
+    require(matching_rule_policy(rules, "domain_suffix", "gemini.google.com") == "净选", "Gemini 必须进入净选")
+    require(matching_rule_policy(rules, "domain_suffix", "google.com") == "极速", "普通 Google 必须进入极速")
+    require(matching_rule_policy(rules, "domain_suffix", "youtube.com") == "极速", "YouTube 必须进入极速")
+    require(matching_rule_policy(rules, "domain_suffix", "cloudflare.com") == "极速", "Cloudflare 必须进入极速")
+    require(matching_rule_policy(rules, "rule_set", "https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/Google/Google.yaml") == "极速", "Google 规则集必须进入极速")
+    require(matching_rule_policy(rules, "rule_set", "https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/PikPak/PikPak.yaml") == "极速", "PikPak 必须进入极速")
     require("default" in rules[-1] and rules[-1]["default"].get("policy") == "PROXY", "最终规则必须进入 PROXY")
 
     modules = profile.get("modules") or []

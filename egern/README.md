@@ -16,6 +16,8 @@
 - `极速`：排除流量、官网、套餐、到期、客服等说明节点，每 600 秒检测，100 ms 容差。
 - `PROXY`：依次提供 `极速`、`稳净`、`净选`、`订阅`、`DIRECT`，普通流量默认进入 `极速`。
 
+分流采用“极速优先”：PikPak、普通 Google、YouTube、Cloudflare 和国际 Apple/Microsoft 服务走 `极速`；只有 OpenAI、Gemini、Anthropic/Claude、Copilot 等对出口地区与 IP 风控更敏感的服务进入 `净选`。`稳净`保留为安全候选池的稳定型手动备选。
+
 规则顺序固定为：必要放行和局域网 → AdvertisingLite 与广告 SDK → AI → Apple/Microsoft → 中国直连 → `PROXY`。错误的 `192.128.0.0/16` 已删除，链路本地地址使用 `169.254.0.0/16`。
 
 ## DNS 边界

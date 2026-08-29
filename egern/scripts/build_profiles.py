@@ -53,6 +53,14 @@ GOOGLE_DOMAINS = [
     "ytimg.com",
 ]
 
+GEMINI_DOMAINS = [
+    "gemini.google.com",
+    "aistudio.google.com",
+    "ai.google.dev",
+    "generativelanguage.googleapis.com",
+    "webchannel-robinfrontend-pa.googleapis.com",
+]
+
 MICROSOFT_CN = [
     "microsoft.cn",
     "officewebapps.cn",
@@ -112,13 +120,18 @@ def build_rules() -> list[dict]:
     )
     rules.extend(domain_rule(domain, "REJECT") for domain in AD_SDK_DOMAINS)
 
-    # AI：Google/Gemini、OpenAI 和其他非中国区 AI 均走净选。
+    # 仅对出口地区和 IP 风控严格的 AI 服务使用净选。
     rules.extend(domain_rule(domain, "净选") for domain in OPENAI_DOMAINS)
-    rules.extend(domain_rule(domain, "净选") for domain in GOOGLE_DOMAINS)
+    rules.extend(domain_rule(domain, "净选") for domain in GEMINI_DOMAINS)
     rules.extend(
         rule_set(name, "净选")
-        for name in ["OpenAI", "Gemini", "Google", "Anthropic", "Claude", "Copilot"]
+        for name in ["OpenAI", "Gemini", "Anthropic", "Claude", "Copilot"]
     )
+
+    # 普通 Google、YouTube 等服务不占用安全节点，统一走极速。
+    rules.extend(domain_rule(domain, "极速") for domain in GOOGLE_DOMAINS)
+    rules.append(rule_set("Google", "极速"))
+    rules.append(rule_set("PikPak", "极速"))
 
     # Apple/Microsoft 中国区先直连，再匹配国际服务。
     rules.extend(domain_rule(domain, "DIRECT") for domain in MICROSOFT_CN)
@@ -126,8 +139,8 @@ def build_rules() -> list[dict]:
     rules.append(rule_set("Microsoft", "极速"))
     rules.append(rule_set("Apple", "极速"))
 
-    # 中国域名与地址直连，Cloudflare 明确交给净选。
-    rules.append(domain_rule("cloudflare.com", "净选"))
+    # 中国域名与地址直连，Cloudflare 等普通国际服务走极速。
+    rules.append(domain_rule("cloudflare.com", "极速"))
     rules.append(rule_set("ChinaMaxNoIP", "DIRECT"))
     rules.append({"geoip": {"match": "CN", "policy": "DIRECT", "no_resolve": True}})
     rules.append({"default": {"policy": "PROXY"}})

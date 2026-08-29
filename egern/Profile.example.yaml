@@ -207,22 +207,19 @@ rules:
     match: oaiusercontent.com
     policy: 净选
 - domain_suffix:
-    match: google.com
+    match: gemini.google.com
     policy: 净选
 - domain_suffix:
-    match: googleapis.com
+    match: aistudio.google.com
     policy: 净选
 - domain_suffix:
-    match: gstatic.com
+    match: ai.google.dev
     policy: 净选
 - domain_suffix:
-    match: googleusercontent.com
+    match: generativelanguage.googleapis.com
     policy: 净选
 - domain_suffix:
-    match: youtube.com
-    policy: 净选
-- domain_suffix:
-    match: ytimg.com
+    match: webchannel-robinfrontend-pa.googleapis.com
     policy: 净选
 - rule_set:
     match: https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/OpenAI/OpenAI.yaml
@@ -230,10 +227,6 @@ rules:
     update_interval: 86400
 - rule_set:
     match: https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/Gemini/Gemini.yaml
-    policy: 净选
-    update_interval: 86400
-- rule_set:
-    match: https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/Google/Google.yaml
     policy: 净选
     update_interval: 86400
 - rule_set:
@@ -247,6 +240,32 @@ rules:
 - rule_set:
     match: https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/Copilot/Copilot.yaml
     policy: 净选
+    update_interval: 86400
+- domain_suffix:
+    match: google.com
+    policy: 极速
+- domain_suffix:
+    match: googleapis.com
+    policy: 极速
+- domain_suffix:
+    match: gstatic.com
+    policy: 极速
+- domain_suffix:
+    match: googleusercontent.com
+    policy: 极速
+- domain_suffix:
+    match: youtube.com
+    policy: 极速
+- domain_suffix:
+    match: ytimg.com
+    policy: 极速
+- rule_set:
+    match: https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/Google/Google.yaml
+    policy: 极速
+    update_interval: 86400
+- rule_set:
+    match: https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/PikPak/PikPak.yaml
+    policy: 极速
     update_interval: 86400
 - domain_suffix:
     match: microsoft.cn
@@ -288,7 +307,7 @@ rules:
     update_interval: 86400
 - domain_suffix:
     match: cloudflare.com
-    policy: 净选
+    policy: 极速
 - rule_set:
     match: https://raw.githubusercontent.com/Repcz/EgernRules/X/Rules/ChinaMaxNoIP/ChinaMaxNoIP.yaml
     policy: DIRECT
