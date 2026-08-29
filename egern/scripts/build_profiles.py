@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import urllib.request
 
 import yaml
@@ -75,6 +76,8 @@ MICROSOFT_CN = [
 
 APPLE_CN = ["apple.com.cn", "icloud.com.cn"]
 UDP_MARKER = " [UDP]"
+INFO_NODE_PATTERN = r"实时负载|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告"
+INFO_NODE_RE = re.compile(INFO_NODE_PATTERN, re.I)
 
 
 def domain_rule(domain: str, policy: str, *, exact: bool = False) -> dict:
@@ -186,9 +189,10 @@ def build_dns() -> dict:
 
 
 def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | None = None) -> list[dict]:
+    source_filter = rf"^(?!.*(?:{INFO_NODE_PATTERN})).+$"
     if local_proxy_names:
         clean_filter = r"(?i)台湾专线B.* \[UDP\]$"
-        fast_filter = r"^(?!.*(?:台湾专线B|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).* \[UDP\]$"
+        fast_filter = rf"^(?!.*(?:台湾专线B|{INFO_NODE_PATTERN})).* \[UDP\]$"
     else:
         clean_filter = "(?i)台湾专线B"
         fast_filter = "^(?!.*(?:台湾专线B|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$"
@@ -198,6 +202,7 @@ def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | No
                 "name": "订阅",
                 "policies": local_proxy_names,
                 "urls": [subscription_url],
+                "filter": source_filter,
                 "interval": 600,
                 "timeout": 8,
                 "update_interval": 86400,
@@ -210,6 +215,7 @@ def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | No
                 "name": "订阅",
                 "type": "fallback",
                 "urls": [subscription_url],
+                "filter": source_filter,
                 "interval": 600,
                 "timeout": 8,
                 "update_interval": 86400,
@@ -298,10 +304,12 @@ def build_udp_trojan_snapshot(subscription: dict) -> list[dict]:
     for index, source in enumerate(subscription.get("proxies", []), start=1):
         if not isinstance(source, dict) or source.get("type") != "trojan":
             continue
+        source_name = str(source.get("name", ""))
+        if INFO_NODE_RE.search(source_name):
+            continue
         required = ["name", "server", "port", "password"]
         if any(source.get(key) in (None, "") for key in required):
             raise ValueError(f"订阅中的第 {index} 个 Trojan 节点缺少必要字段")
-        source_name = str(source["name"])
         if source_name in names:
             raise ValueError("订阅中的 Trojan 节点名称重复，无法安全覆盖")
         names.add(source_name)
@@ -319,6 +327,21 @@ def build_udp_trojan_snapshot(subscription: dict) -> list[dict]:
         proxies.append({"trojan": body})
     if not proxies:
         raise ValueError("订阅中没有可转换的 Trojan 节点")
+    return proxies
+
+
+def read_cached_udp_snapshot(source: Path) -> list[dict]:
+    with source.open("r", encoding="utf-8-sig") as handle:
+        data = yaml.safe_load(handle)
+    proxies: list[dict] = []
+    for wrapped in data.get("proxies", []) if isinstance(data, dict) else []:
+        body = wrapped.get("trojan") if isinstance(wrapped, dict) else None
+        if not isinstance(body, dict) or INFO_NODE_RE.search(str(body.get("name", ""))):
+            continue
+        if body.get("udp_relay") is True and str(body.get("name", "")).endswith(UDP_MARKER):
+            proxies.append({"trojan": dict(body)})
+    if not proxies:
+        raise ValueError("订阅暂不可用，源配置中也没有可复用的 UDP 节点快照")
     return proxies
 
 
@@ -364,7 +387,11 @@ def main() -> int:
         if not args.source or not args.private_dir:
             parser.error("--source 与 --private-dir 必须同时提供")
         subscription_url = read_subscription_url(args.source.resolve())
-        udp_proxies = build_udp_trojan_snapshot(fetch_subscription(subscription_url))
+        try:
+            udp_proxies = build_udp_trojan_snapshot(fetch_subscription(subscription_url))
+        except (OSError, UnicodeError, yaml.YAMLError):
+            udp_proxies = read_cached_udp_snapshot(args.source.resolve())
+            print("订阅暂不可用；已使用现有私有配置中的 UDP 节点快照。")
         private_dir = args.private_dir.resolve()
         if egern_dir.parent.resolve() in private_dir.parents or private_dir == egern_dir.parent.resolve():
             raise ValueError("私有输出目录必须位于 Git 仓库之外")

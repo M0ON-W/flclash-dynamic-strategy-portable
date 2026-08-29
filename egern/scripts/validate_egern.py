@@ -14,7 +14,7 @@ import yaml
 
 GROUP_TYPES = {"external", "auto_test", "smart", "select", "fallback", "load_balance"}
 BUILTINS = {"DIRECT", "REJECT"}
-INFO_RE = re.compile(r"(?:流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)", re.I)
+INFO_RE = re.compile(r"(?:实时负载|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)", re.I)
 TAIWAN_B_RE = re.compile(r"台湾专线B", re.I)
 UDP_MARKER = " [UDP]"
 FORBIDDEN_MODULE_RE = re.compile(
@@ -107,6 +107,7 @@ def validate_profile(path: Path, safe: bool) -> dict:
             require(body.get("block_quic") is False, "本地 Trojan 节点必须允许 QUIC")
             require(all(body.get(key) not in (None, "") for key in ["name", "server", "port", "password"]), "本地 Trojan 节点字段不完整")
             require(str(body["name"]).endswith(UDP_MARKER), "本地 UDP 修正版节点缺少可见标记")
+            require(not INFO_RE.search(str(body["name"])), "本地 UDP 快照仍包含说明节点")
             local_names.append(body["name"])
         require(len(local_names) == len(set(local_names)), "本地 Trojan 节点名称重复")
         require(groups["订阅"][1].get("policies") == local_names, "订阅组未完整引用 UDP 快照节点")
@@ -236,7 +237,7 @@ def validate_live_subscription(subscription: dict) -> None:
     require(fast, "极速候选池为空")
     require(not set(clean) & set(fast), "极速不得包含台湾专线B安全节点")
     require(len(clean) == 6, f"当前订阅的台湾专线B预期为 6，实际为 {len(clean)}")
-    require(len(info) == 2, f"当前订阅的说明类节点预期为 2，实际为 {len(info)}")
+    require(len(info) == 3, f"当前订阅的说明类节点预期为 3，实际为 {len(info)}")
     print(f"订阅过滤：总节点 {len(names)}，净选/稳净 {len(clean)}，极速 {len(fast)}，排除说明 {len(info)}。")
 
 

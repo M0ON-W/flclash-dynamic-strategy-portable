@@ -65,6 +65,7 @@ policy_groups:
     type: fallback
     urls:
     - SUBSCRIPTION_URL
+    filter: ^(?!.*(?:实时负载|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$
     interval: 600
     timeout: 8
     update_interval: 86400
