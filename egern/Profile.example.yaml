@@ -88,15 +88,12 @@ policy_groups:
     filter: (?i)台湾专线B
     latency_test_url: https://www.gstatic.com/generate_204
     hidden: false
-- auto_test:
+- smart:
     name: 极速
     policies:
     - 订阅
     flatten: true
     filter: ^(?!.*(?:流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$
-    interval: 600
-    tolerance: 100
-    timeout: 8
     latency_test_url: https://speed.cloudflare.com/__down?bytes=131072
     hidden: false
 - select:

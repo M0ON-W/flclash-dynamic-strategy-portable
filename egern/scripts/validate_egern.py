@@ -80,10 +80,11 @@ def validate_profile(path: Path, safe: bool) -> dict:
     require(groups["订阅"][0] == expected_subscription_type, "订阅策略组类型与本地节点模式不一致")
     require(groups["净选"][0] == "auto_test", "净选必须为 auto_test")
     require(groups["稳净"][0] == "smart", "稳净必须为 smart")
-    require(groups["极速"][0] == "auto_test", "极速必须为 auto_test")
+    require(groups["极速"][0] == "smart", "极速必须为 smart")
     require(groups["PROXY"][1].get("policies") == ["极速", "稳净", "净选", "订阅", "DIRECT"], "PROXY 顺序错误")
     require(groups["净选"][1].get("interval") == 600 and groups["净选"][1].get("tolerance") == 50, "净选测速参数错误")
-    require(groups["极速"][1].get("interval") == 600 and groups["极速"][1].get("tolerance") == 100, "极速测速参数错误")
+    require(groups["极速"][1].get("latency_test_url") == "https://speed.cloudflare.com/__down?bytes=131072", "极速探测地址错误")
+    require("interval" not in groups["极速"][1] and "tolerance" not in groups["极速"][1], "极速 smart 不得保留 auto_test 参数")
     local_proxy_names = {
         body.get("name")
         for proxy in local_proxies

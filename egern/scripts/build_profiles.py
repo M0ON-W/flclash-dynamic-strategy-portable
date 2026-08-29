@@ -237,14 +237,11 @@ def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | No
             }
         },
         {
-            "auto_test": {
+            "smart": {
                 "name": "极速",
                 "policies": ["订阅"],
                 "flatten": True,
                 "filter": fast_filter,
-                "interval": 600,
-                "tolerance": 100,
-                "timeout": 8,
                 "latency_test_url": "https://speed.cloudflare.com/__down?bytes=131072",
                 "hidden": False,
             }
