@@ -89,3 +89,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 回復腳本不會替你關閉 FlClash；若偵測到 FlClash 仍在運行，它會拒絕操作。
 
 更多內容見 [docs/安裝與遷移.md](docs/安裝與遷移.md)、[docs/技術架構.md](docs/技術架構.md) 和 [docs/項目總結.md](docs/項目總結.md)。
+
+## Egern 手機版
+
+`egern/` 提供不依賴 Windows 或本機服務的 Egern 三組策略移植、加密分流 DNS、安全版與经审查的去广告增强版。安装、回滚、第三方许可和真机验收边界见 [egern/README.md](egern/README.md)。

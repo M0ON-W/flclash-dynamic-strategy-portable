@@ -1,0 +1,4 @@
+# 用户维护的误杀放行规则。配置生成器会把这些规则内联到 AdvertisingLite 之前。
+domain_set:
+  - captive.apple.com
+  - connectivitycheck.gstatic.com

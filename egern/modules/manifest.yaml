@@ -1,0 +1,371 @@
+schema_version: 1
+modules:
+- id: wechat-official-account
+  app: 微信公众号
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partW/WeChatOfficialAccount.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - mp.weixin.qq.com
+  script_urls: []
+  sha256: 2bdfaa940c171091413a2f0b477132b32326a8687b62c817af4b843fa59a00a7
+  review_status: approved
+  default_enabled: true
+  notes: 仅过滤公众号文章广告和推荐内容。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/wechat-official-account.sgmodule
+- id: wechat-mini-program
+  app: 微信小程序
+  source_url: https://raw.githubusercontent.com/QingRex/LoonKissSurge/913ec005f544221e6c56a7d0ecec81c4b3b914bb/Surge/微信小程序去广告.sgmodule
+  source_commit: 913ec005f544221e6c56a7d0ecec81c4b3b914bb
+  license: unclear-aggregation
+  mitm_domains:
+  - 3pp.starbucks.com.cn
+  - aag.enmonster.com
+  - activity.yonghuivip.com
+  - ad.maoyan.com
+  - ad.xiaotucc.com
+  - ads.ishansong.com
+  - alittle-tea.oss-cn-shanghai.aliyuncs.com
+  - api-fouth-mem.huazhu.com
+  - api-marketing.zhinengxiyifang.cn
+  - api.hellobike.com
+  - api.hengdianfilm.com
+  - api.hongyibo.com.cn
+  - api.kuaidihelp.com
+  - api.maoyan.com
+  - api.mcd.cn
+  - api.pinduoduo.com
+  - api.prod.dj.mstand.cn
+  - api.songguo7.com
+  - api.szbgcx.cn
+  - api.yonghuivip.com
+  - apiproxy.zuche.com
+  - apis.alenable.com
+  - app.95504.net
+  - app.homeinns.com
+  - applets.jtexpress.com.cn
+  - appuser-static.huolala.cn
+  - as.xiaojukeji.com
+  - capis*.didapinche.com
+  - cappapi.alittle-tea.com
+  - cbd-gateway-service-applets.hualala.com
+  - ccmsupport-sz.tenpay.com
+  - chong.qq.com
+  - coco-com.e.verystar.net
+  - creditcardapp.bankcomm.com
+  - customer-app.sto.cn
+  - daijia.kuaidadi.com
+  - dock.tenchii.com
+  - dsp.fcbox.com
+  - file.dian.so
+  - flow.dmall.com
+  - fscdn.zto.com
+  - gw-passenger-wap.01zhuanche.com
+  - hdgateway.zto.com
+  - htwkop.xiaojukeji.com
+  - images.qmai.cn
+  - lawsonapi.yorentown.com
+  - m.ctrip.com
+  - mapi.xiaotucc.com
+  - mbmodule-openapi.paas.cmbchina.com
+  - mcsp.cloudpnr.com
+  - member.lxjchina.com.cn
+  - miniapp.sexytea2013.com
+  - minicap.caocaokeji.cn
+  - minifm.maxxipoint.com
+  - minipro.95504.net
+  - miniprogram.ishansong.com
+  - mkt-gateway.tuhu.cn
+  - mobile-api.imlaidian.com
+  - mobile.12306.cn
+  - mxsa.mxbc.net
+  - ne.gdsz.sinopec.com
+  - newton.gumingnc.com
+  - passenger.t3go.cn
+  - passengerapi.saicmobility.com
+  - plt.yorentown.com
+  - qapi.huolala.cn
+  - r2.gzyct.com
+  - res.hongyibo.com.cn
+  - res.pizzahut.com.cn
+  - rms.meituan.com
+  - s.jiediankeji.com
+  - saas-ad.cloudpnr.com
+  - sauron-report.yonghuivip.com
+  - smarket.dian.so
+  - sto-customer-app.oss-cn-shanghai.aliyuncs.com
+  - supplier-api.imdada.cn
+  - suyun-guest.daojia.com
+  - tbgapplet.carlsberg.asia
+  - tm-api.pin-dao.cn
+  - ucmp.sf-express.com
+  - ump.ems.com.cn
+  - vod-movie.maoyan.com
+  - webapi.qmai.cn
+  - webchatapp.fcbox.com
+  - wechat-api.i-xiaoma.com.cn
+  - www.deppon.com
+  - wx.10086.cn
+  - wx.bthhotels.com
+  - wx.maoyan.com
+  - wx.online-cmcc.cn
+  - wxapp.bestwehotel.com
+  - wxproj.seeyouyima.com
+  - wxs-weixin.sd.zhumanggroup.com
+  script_urls:
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/FamilyMart/FamilyMart.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/M_Stand/M_Stand.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/T3/T3.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/alittle-tea/alittle-tea.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/chayanyuese/chayanyuese_remove_ads.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/coco/coco.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/ems/ems.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/kff/kff.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/lawson/lawson.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/ming/ming.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/qingju/qingju.js
+    sha256: null
+  - url: https://kelee.one/Resource/JavaScript/WexinMiniPrograms/xiaotucc/xiaotucc.js
+    sha256: null
+  sha256: 5e6f36260e314a37548e40b008f2c6c11edd5d8a679f1f2dcd9e764dfa6b49de
+  review_status: held
+  default_enabled: false
+  notes: 含银行、支付与会员相关接口；不进入增强版，仅由域名规则提供有限覆盖。
+  module_url: https://raw.githubusercontent.com/QingRex/LoonKissSurge/913ec005f544221e6c56a7d0ecec81c4b3b914bb/Surge/微信小程序去广告.sgmodule
+- id: weibo
+  app: 微博
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/weibo.module
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - '*.weibo.cn'
+  - '*.weibo.com'
+  - weibo.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Scripts/weibo/weibo_ads.js
+    sha256: 0a0e8ff17f035daf4dc1959175e599d95b79b5dc556201b9ac5a72110b95e9ec
+  - url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Scripts/weibo/weibo_main.js
+    sha256: b983daa2ed3ab62f4d0f7642f9378f499307fbf762653b2c0f2a8ea91e5753d2
+  - url: https://raw.githubusercontent.com/zmqcherish/proxy-script/1d9f51bc9a0077d81998bb503ee6158ca83faa73/weibo_launch.js
+    sha256: 52a84b95c5bad5265fb06aef4507a6bba1a365eac06ae7b3658958ddfc4fa7ad
+  sha256: a4bdbedc1021c4631563f8df81be26e87a08e2e240ab8f7d4fb0e9b0b0921ff8
+  review_status: approved-sanitized
+  default_enabled: true
+  notes: 删除自定义皮肤、非会员皮肤及会员图标三条非广告功能。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/weibo-ad-only.sgmodule
+- id: zhihu
+  app: 知乎
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partZ/Zhihu.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - api.zhihu.com
+  - appcloud2.zhihu.com
+  - link.zhihu.com
+  - m-cloud.zhihu.com
+  - www.zhihu.com
+  - zhuanlan.zhihu.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Scripts/zhihu/zhihu.js
+    sha256: d192a1db1526748916f60eef6f3c4888132ade096e11b990294f185dccbcd469
+  sha256: 71fa43ed92c558d69c7c030bed50cedc76d6d5e1d492f9c7be71f4eda4fd06ab
+  review_status: approved
+  default_enabled: true
+  notes: vip_tab 仅移除会员页面内的推广卡片，不更改会员状态。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/zhihu.sgmodule
+- id: bilibili
+  app: 哔哩哔哩
+  source_url: https://github.com/BiliUniverse/ADBlock/releases/tag/v0.6.24
+  source_commit: 43b07841fa55ba77e29d478cab0be44c8b49a3c2
+  license: Apache-2.0
+  mitm_domains:
+  - api.biliapi.net
+  - api.bilibili.com
+  - api.live.bilibili.com
+  - api.vc.bilibili.com
+  - app.biliapi.net
+  - app.bilibili.com
+  - grpc.biliapi.net
+  - manga.bilibili.com
+  script_urls:
+  - url: https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/request.bundle.js
+    sha256: adc2f2f2e09466ab9f21f4a0e39e212a741b753279b993a773c23af81bf43ecf
+  - url: https://github.com/BiliUniverse/ADBlock/releases/download/v0.6.24/response.bundle.js
+    sha256: f805f7dd5dad9f43ac67ce47b9d3ac294b5848a59b1d0ea9d504707fe406f4a1
+  sha256: a853f6444193d584783229c28293b191c1f9bf1cfc212f22bc1fcff9b3d9c4e7
+  review_status: approved-sanitized
+  default_enabled: true
+  notes: 基于 v0.6.24 模板生成，删除番剧 payment 字段改写。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/apache-2.0/bilibili-ad-only.sgmodule
+- id: amap
+  app: 高德地图
+  source_url: https://raw.githubusercontent.com/QingRex/LoonKissSurge/913ec005f544221e6c56a7d0ecec81c4b3b914bb/Surge/高德地图去广告.sgmodule
+  source_commit: 913ec005f544221e6c56a7d0ecec81c4b3b914bb
+  license: unclear-aggregation
+  mitm_domains:
+  - '*.amap.com'
+  script_urls:
+  - url: https://kelee.one/Resource/JavaScript/Amap/Amap_remove_ads.js
+    sha256: null
+  sha256: 88c8c5a57153c793ecb2a41f2f98e5687043f726afa45c6ac92890cfe38fc6cf
+  review_status: held
+  default_enabled: false
+  notes: 聚合模块会改写支付成功和会员提示接口，且嵌套脚本不可完整固定；不启用 MITM。
+  module_url: https://raw.githubusercontent.com/QingRex/LoonKissSurge/913ec005f544221e6c56a7d0ecec81c4b3b914bb/Surge/高德地图去广告.sgmodule
+- id: xianyu
+  app: 闲鱼
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partX/XianYu.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - acs.m.goofish.com
+  - g-acs.m.goofish.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/ishowshu/qx/64dca36e675911f7751eae5d839c2e1e3b02e843/script/goofish.js
+    sha256: 24069557d0f8b59c3a6335bef8dc32c65b299602b1bd4ccfd5f532b938497d4a
+  sha256: b33ea2678a7aa9a4c763e2f252de4aaa7d3a19cf7ecd546bf501beac32feb444
+  review_status: approved
+  default_enabled: true
+  notes: 推广卡片与广告接口净化，外部脚本固定到审查提交。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/xianyu.sgmodule
+- id: taobao
+  app: 淘宝
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partT/Taobao.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - acs.m.taobao.com
+  - guide-acs.m.taobao.com
+  - poplayer.template.alibaba.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/scripts/myBlockAds-ad-only.js
+    sha256: 115f5140d1cf98fc7bc0aa497df24e907205067d0aa6ef24dad43a5ee3ee67ef
+  sha256: fd3e98f99ed8c826a66fd45bcac6bdfb21378f5c59131dbc101a7c4ab3001757
+  review_status: approved
+  default_enabled: true
+  notes: 仅广告与推广内容净化。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/taobao.sgmodule
+- id: jd
+  app: 京东
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partJ/JD.com.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - api.m.jd.com
+  - dns.jd.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Scripts/jingdong/jingdong.js
+    sha256: 553797d6b712f13b8c5b0812911018d032f7cd04af3a425f13499590db2dc61d
+  sha256: 501b0678e95484b8f74e16b57572827c454ca5b42d851f911967717dd2f2aeed
+  review_status: approved
+  default_enabled: true
+  notes: 仅广告与推广内容净化。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/jd.sgmodule
+- id: pinduoduo
+  app: 拼多多
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partP/Pinduoduo.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - api.pinduoduo.com
+  - api.yangkeduo.com
+  - mobile.yangkeduo.com
+  script_urls: []
+  sha256: 9e291410c7314bf068a5c21f2b15e21744058737c74c6d5d3a3428def22cbd3f
+  review_status: approved
+  default_enabled: true
+  notes: 仅广告与推广内容净化。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/pinduoduo.sgmodule
+- id: tieba
+  app: 百度贴吧
+  source_url: https://raw.githubusercontent.com/app2smile/rules/df6366a7024e0b3f0aa3510c5b791eea6f3cba89/module/tieba.sgmodule
+  source_commit: df6366a7024e0b3f0aa3510c5b791eea6f3cba89
+  license: MIT
+  mitm_domains:
+  - tiebac.baidu.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/app2smile/rules/df6366a7024e0b3f0aa3510c5b791eea6f3cba89/js/tieba-json.js
+    sha256: 2fd526f52731a1f3dc211dc6a1aa3ebf33d7dda800e442db6ab00f6290f16653
+  - url: https://raw.githubusercontent.com/app2smile/rules/df6366a7024e0b3f0aa3510c5b791eea6f3cba89/js/tieba-proto.js
+    sha256: 0bd26fc0ea1f6a7fd8e0114e75140902f947dd08700df042dc324ae510066374
+  sha256: 3fc92de9f2ac00d0b3fb562e99c4efa320119a695c66cc6411c621f48ece3391
+  review_status: approved
+  default_enabled: true
+  notes: 广告 JSON/Proto 与广告域名净化。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/mit/tieba.sgmodule
+- id: smzdm
+  app: 什么值得买
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partS/SMZDM.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - app-api.smzdm.com
+  - article-api.smzdm.com
+  - haojia-api.smzdm.com
+  - haojia.m.smzdm.com
+  - homepage-api.smzdm.com
+  - qianbao.smzdm.com
+  - s-api.smzdm.com
+  - user-api.smzdm.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Scripts/smzdm/Smzdm.js
+    sha256: 8200b2853d7992408c601301c5ee4ab017b0688b86c3a59179c56fc87b46cbe5
+  - url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Scripts/smzdm/smzdm_ads.js
+    sha256: c4dab55fac3bd5e77373f68a51c5733c6d3032a5c319f2f408ff496af53ba9b4
+  sha256: 297450ae85f5fb09021577e5d063573cd6a55fbe9943ba471a5054811225153d
+  review_status: approved-sanitized
+  default_enabled: true
+  notes: 删除三个 /vip 路径脚本，只保留普通页面广告净化。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/smzdm-ad-only.sgmodule
+- id: netease-music
+  app: 网易云音乐
+  source_url: https://raw.githubusercontent.com/fmz200/wool_scripts/2d95818e34fa2eada06b114f9968a5283beb06de/Surge/module/split/partW/NetEaseCloudMusic.sgmodule
+  source_commit: 2d95818e34fa2eada06b114f9968a5283beb06de
+  license: GPL-3.0
+  mitm_domains:
+  - interface.music.163.com
+  - interface3.music.163.com
+  - interface9.music.163.com
+  - ipv4.music.163.com
+  script_urls:
+  - url: https://raw.githubusercontent.com/Keywos/rule/e38265cc902852aa8ec6ec831509ea0be6492260/script/wy/js/wyres.js
+    sha256: b0c4dd9bc6fd6fe193a496a51fb70bcdbe31c079e1809fb5783530cf95604cb8
+  sha256: 65e9d038ee04a2da6349d852707849def02aa754acc5254dce701bbaaa96cd86
+  review_status: approved
+  default_enabled: true
+  notes: 仅广告内容净化，外部脚本固定到审查提交。
+  module_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/modules/gpl-3.0/netease-music.sgmodule
+- id: douyin-mainland
+  app: 大陆抖音
+  source_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/rules/ad-sdk.yaml
+  source_commit: local
+  license: project
+  mitm_domains: []
+  script_urls: []
+  sha256: 8afc8a295fbdb573380d75cdf35c7825c12bd27a164c52b6165c9cfcb9ac841e
+  review_status: domain-only
+  default_enabled: true
+  notes: 不使用香港抖音模块；只拦截明确字节广告 SDK 域名。
+  module_url: null
+- id: qq-main
+  app: QQ 主应用
+  source_url: https://raw.githubusercontent.com/M0ON-W/flclash-dynamic-strategy-portable/main/egern/rules/ad-sdk.yaml
+  source_commit: local
+  license: project
+  mitm_domains: []
+  script_urls: []
+  sha256: 8afc8a295fbdb573380d75cdf35c7825c12bd27a164c52b6165c9cfcb9ac841e
+  review_status: domain-only
+  default_enabled: true
+  notes: 不使用 QQ 音乐模块；只拦截明确腾讯广告 SDK 域名。
+  module_url: null

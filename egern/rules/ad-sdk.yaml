@@ -1,0 +1,17 @@
+# 大陆抖音与 QQ 主应用的保守域名级广告拦截；不包含业务、登录、支付或账号域名。
+domain_suffix_set:
+  - ad.zijieapi.com
+  - ads3-normal-hl.zijieapi.com
+  - ads5-normal-hl.zijieapi.com
+  - is.snssdk.com
+  - log-api.pangolin-sdk-toutiao.com
+  - pangolin-sdk-toutiao-b.com
+  - pangolin-sdk-toutiao.com
+  - pangolin.snssdk.com
+  - adsmind.apdcdn.tc.qq.com
+  - gdt.qq.com
+  - mi.gdt.qq.com
+  - pgdt.gtimg.cn
+  - qzs.gdtimg.com
+  - sdk.e.qq.com
+  - v.gdt.qq.com
