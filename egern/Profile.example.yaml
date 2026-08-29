@@ -93,8 +93,9 @@ policy_groups:
     policies:
     - 订阅
     flatten: true
-    filter: ^(?!.*(?:流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$
+    filter: ^(?!.*(?:台湾专线B|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$
     latency_test_url: https://speed.cloudflare.com/__down?bytes=131072
+    block_quic: false
     hidden: false
 - select:
     name: PROXY

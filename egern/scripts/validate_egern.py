@@ -84,6 +84,7 @@ def validate_profile(path: Path, safe: bool) -> dict:
     require(groups["PROXY"][1].get("policies") == ["极速", "稳净", "净选", "订阅", "DIRECT"], "PROXY 顺序错误")
     require(groups["净选"][1].get("interval") == 600 and groups["净选"][1].get("tolerance") == 50, "净选测速参数错误")
     require(groups["极速"][1].get("latency_test_url") == "https://speed.cloudflare.com/__down?bytes=131072", "极速探测地址错误")
+    require(groups["极速"][1].get("block_quic") is False, "极速必须允许 QUIC")
     require("interval" not in groups["极速"][1] and "tolerance" not in groups["极速"][1], "极速 smart 不得保留 auto_test 参数")
     local_proxy_names = {
         body.get("name")
@@ -225,9 +226,10 @@ def validate_live_subscription(subscription: dict) -> None:
     names = [str(item.get("name", "")) for item in proxies if isinstance(item, dict)]
     clean = [name for name in names if TAIWAN_B_RE.search(name)]
     info = [name for name in names if INFO_RE.search(name)]
-    fast = [name for name in names if not INFO_RE.search(name)]
+    fast = [name for name in names if not INFO_RE.search(name) and not TAIWAN_B_RE.search(name)]
     require(clean, "净选/稳净候选池为空")
     require(fast, "极速候选池为空")
+    require(not set(clean) & set(fast), "极速不得包含台湾专线B安全节点")
     require(len(clean) == 6, f"当前订阅的台湾专线B预期为 6，实际为 {len(clean)}")
     require(len(info) == 2, f"当前订阅的说明类节点预期为 2，实际为 {len(info)}")
     print(f"订阅过滤：总节点 {len(names)}，净选/稳净 {len(clean)}，极速 {len(fast)}，排除说明 {len(info)}。")

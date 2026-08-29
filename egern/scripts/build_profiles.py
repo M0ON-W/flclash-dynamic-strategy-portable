@@ -186,7 +186,7 @@ def build_dns() -> dict:
 
 def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | None = None) -> list[dict]:
     clean_filter = "(?i)台湾专线B"
-    fast_filter = "^(?!.*(?:流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$"
+    fast_filter = "^(?!.*(?:台湾专线B|流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$"
     if local_proxy_names:
         subscription_group = {
             "fallback": {
@@ -243,6 +243,7 @@ def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | No
                 "flatten": True,
                 "filter": fast_filter,
                 "latency_test_url": "https://speed.cloudflare.com/__down?bytes=131072",
+                "block_quic": False,
                 "hidden": False,
             }
         },

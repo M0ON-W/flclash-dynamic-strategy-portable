@@ -14,10 +14,10 @@
 
 - `净选`：仅匹配“台湾专线B”，每 600 秒用 Google 204 检测，50 ms 切换容差。
 - `稳净`：同一候选池，使用 Egern `smart` 的延迟、抖动和成功率历史评分。
-- `极速`：排除流量、官网、套餐、到期、客服等说明节点，使用 Egern `smart` 综合多轮延迟、抖动、成功率和运行期故障动态选优。
+- `极速`：排除“台湾专线B”安全节点及流量、官网、套餐、到期、客服等说明节点，使用 Egern `smart` 持续综合多轮延迟、抖动、成功率和运行期故障动态选优，并显式允许 QUIC。
 - `PROXY`：依次提供 `极速`、`稳净`、`净选`、`订阅`、`DIRECT`，普通流量默认进入 `极速`。
 
-分流采用“极速优先”：PikPak、普通 Google、YouTube、Cloudflare 和国际 Apple/Microsoft 服务走 `极速`；只有 OpenAI、Gemini、Anthropic/Claude、Copilot 等对出口地区与 IP 风控更敏感的服务进入 `净选`。`稳净`保留为安全候选池的稳定型手动备选。
+分流采用“极速优先”：PikPak、普通 Google、YouTube、Cloudflare 和国际 Apple/Microsoft 服务走 `极速`；只有 OpenAI、Gemini、Anthropic/Claude、Copilot 等对出口地区与 IP 风控更敏感的服务进入 `净选`。`极速`与安全池互不重叠，检测结果只保存在 Egern 的动态健康记录中，不会固定为某个节点；`稳净`保留为安全候选池的稳定型手动备选。
 
 当前机场订阅的 Trojan 节点未下发 UDP 字段，而 Egern 的可选布尔字段缺省为 `false`。生成私有版时会把当前 Trojan 节点转换为 Egern 原生格式，显式设置 `udp_relay: true` 与 `block_quic: false`；同名远程节点由本地修正版优先覆盖，新名称节点仍由原订阅加载。机场更换节点地址、密码或名称后，应在电脑上重新运行生成命令并重新导入，才能刷新本地 UDP 快照。
 
