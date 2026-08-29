@@ -75,16 +75,37 @@ def validate_profile(path: Path, safe: bool) -> dict:
 
     groups = policy_groups(profile)
     require(set(groups) == {"订阅", "净选", "稳净", "极速", "PROXY"}, "策略组集合不符合三组方案")
-    require(groups["订阅"][0] == "external", "订阅必须为 external")
+    local_proxies = profile.get("proxies") or []
+    expected_subscription_type = "fallback" if local_proxies else "external"
+    require(groups["订阅"][0] == expected_subscription_type, "订阅策略组类型与本地节点模式不一致")
     require(groups["净选"][0] == "auto_test", "净选必须为 auto_test")
     require(groups["稳净"][0] == "smart", "稳净必须为 smart")
     require(groups["极速"][0] == "auto_test", "极速必须为 auto_test")
     require(groups["PROXY"][1].get("policies") == ["极速", "稳净", "净选", "订阅", "DIRECT"], "PROXY 顺序错误")
     require(groups["净选"][1].get("interval") == 600 and groups["净选"][1].get("tolerance") == 50, "净选测速参数错误")
     require(groups["极速"][1].get("interval") == 600 and groups["极速"][1].get("tolerance") == 100, "极速测速参数错误")
+    local_proxy_names = {
+        body.get("name")
+        for proxy in local_proxies
+        if isinstance(proxy, dict)
+        for body in proxy.values()
+        if isinstance(body, dict) and body.get("name")
+    }
     for _name, (_kind, body) in groups.items():
         for policy in body.get("policies", []):
-            require(policy in groups or policy in BUILTINS, f"策略引用不存在: {policy}")
+            require(policy in groups or policy in BUILTINS or policy in local_proxy_names, f"策略引用不存在: {policy}")
+
+    if local_proxies:
+        local_names = []
+        for proxy in local_proxies:
+            require(isinstance(proxy, dict) and set(proxy) == {"trojan"}, "UDP 快照只允许 Egern 原生 Trojan 节点")
+            body = proxy["trojan"]
+            require(body.get("udp_relay") is True, "本地 Trojan 节点未启用 UDP 转发")
+            require(body.get("block_quic") is False, "本地 Trojan 节点必须允许 QUIC")
+            require(all(body.get(key) not in (None, "") for key in ["name", "server", "port", "password"]), "本地 Trojan 节点字段不完整")
+            local_names.append(body["name"])
+        require(len(local_names) == len(set(local_names)), "本地 Trojan 节点名称重复")
+        require(groups["订阅"][1].get("policies") == local_names, "订阅组未完整引用 UDP 快照节点")
 
     rules = profile.get("rules") or []
     serialized_rules = [yaml.safe_dump(rule, allow_unicode=True) for rule in rules]
@@ -159,9 +180,11 @@ def iter_repo_files(repo: Path):
 def read_subscription_url(source: Path) -> str:
     profile = load_yaml(source)
     for wrapped in profile.get("policy_groups", []):
-        external = wrapped.get("external", {})
-        if external.get("name") == "订阅":
-            urls = external.get("urls") or []
+        if not isinstance(wrapped, dict) or len(wrapped) != 1:
+            continue
+        body = next(iter(wrapped.values()))
+        if isinstance(body, dict) and body.get("name") == "订阅":
+            urls = body.get("urls") or []
             require(len(urls) == 1, "源订阅 URL 数量必须为 1")
             return str(urls[0])
     raise ValidationError("源配置中找不到订阅 URL")
@@ -288,7 +311,9 @@ def main() -> int:
         require(repo.resolve() not in private_dir.parents and private_dir != repo.resolve(), "私有目录必须位于仓库外")
         enhanced_private = validate_profile(private_dir / "Profile.enhanced.yaml", safe=False)
         safe_private = validate_profile(private_dir / "Profile.safe.yaml", safe=True)
-        for private_profile in [enhanced_private, safe_private]:
+        rollback_private = validate_profile(private_dir / "Profile.rollback.yaml", safe=True)
+        require(not rollback_private.get("proxies"), "回滚版不得包含本地 UDP 快照")
+        for private_profile in [enhanced_private, safe_private, rollback_private]:
             urls = policy_groups(private_profile)["订阅"][1].get("urls") or []
             require(len(urls) == 1 and urls[0] != "SUBSCRIPTION_URL", "私有配置未写入订阅 URL")
 

@@ -1,12 +1,13 @@
 # Egern 三组策略与大陆常用 App 去广告
 
-本目录提供手机独立运行的 Egern 配置。Egern 直接读取原订阅，不依赖 Windows、Python、Mihomo 服务或后台服务器。
+本目录提供手机独立运行的 Egern 配置。私有版保留原订阅，并内置当前 Trojan 节点的 Egern 原生 UDP 快照，不依赖 Windows、Python、Mihomo 服务或后台服务器。
 
 ## 交付文件
 
 - `Profile.example.yaml`：公开脱敏增强版模板，订阅地址为 `SUBSCRIPTION_URL`。
 - `Profile.safe.example.yaml`：公开脱敏安全版；无模块、无 MITM，仅保留域名级广告规则。
-- 仓库外私有目录中的 `Profile.enhanced.yaml` 与 `Profile.safe.yaml`：写入真实订阅 URL，严禁加入 Git。
+- 仓库外私有目录中的 `Profile.enhanced.yaml` 与 `Profile.safe.yaml`：写入真实订阅 URL和本地 UDP 快照，严禁加入 Git。
+- `Profile.rollback.yaml`：不含模块和本地节点的原订阅回滚版；若 UDP 修正版无法导入，可立即切回。
 - `modules/manifest.yaml`：15 个应用的来源、提交、许可证、MITM 域名、脚本 URL、SHA-256 和审查状态。
 
 ## 策略与规则
@@ -17,6 +18,8 @@
 - `PROXY`：依次提供 `极速`、`稳净`、`净选`、`订阅`、`DIRECT`，普通流量默认进入 `极速`。
 
 分流采用“极速优先”：PikPak、普通 Google、YouTube、Cloudflare 和国际 Apple/Microsoft 服务走 `极速`；只有 OpenAI、Gemini、Anthropic/Claude、Copilot 等对出口地区与 IP 风控更敏感的服务进入 `净选`。`稳净`保留为安全候选池的稳定型手动备选。
+
+当前机场订阅的 Trojan 节点未下发 UDP 字段，而 Egern 的可选布尔字段缺省为 `false`。生成私有版时会把当前 Trojan 节点转换为 Egern 原生格式，显式设置 `udp_relay: true` 与 `block_quic: false`；同名远程节点由本地修正版优先覆盖，新名称节点仍由原订阅加载。机场更换节点地址、密码或名称后，应在电脑上重新运行生成命令并重新导入，才能刷新本地 UDP 快照。
 
 规则顺序固定为：必要放行和局域网 → AdvertisingLite 与广告 SDK → AI → Apple/Microsoft → 中国直连 → `PROXY`。错误的 `192.128.0.0/16` 已删除，链路本地地址使用 `169.254.0.0/16`。
 

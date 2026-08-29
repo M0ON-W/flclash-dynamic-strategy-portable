@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import urllib.request
 
 import yaml
 
@@ -183,11 +184,23 @@ def build_dns() -> dict:
     }
 
 
-def build_policy_groups(subscription_url: str) -> list[dict]:
+def build_policy_groups(subscription_url: str, local_proxy_names: list[str] | None = None) -> list[dict]:
     clean_filter = "(?i)台湾专线B"
     fast_filter = "^(?!.*(?:流量|官网|套餐|到期|客服|剩余|过期|重置|说明|公告)).+$"
-    return [
-        {
+    if local_proxy_names:
+        subscription_group = {
+            "fallback": {
+                "name": "订阅",
+                "policies": local_proxy_names,
+                "urls": [subscription_url],
+                "interval": 600,
+                "timeout": 8,
+                "update_interval": 86400,
+                "hidden": False,
+            }
+        }
+    else:
+        subscription_group = {
             "external": {
                 "name": "订阅",
                 "type": "fallback",
@@ -197,7 +210,9 @@ def build_policy_groups(subscription_url: str) -> list[dict]:
                 "update_interval": 86400,
                 "hidden": False,
             }
-        },
+        }
+    return [
+        subscription_group,
         {
             "auto_test": {
                 "name": "净选",
@@ -244,32 +259,79 @@ def build_policy_groups(subscription_url: str) -> list[dict]:
     ]
 
 
-def build_profile(subscription_url: str, enhanced: bool) -> dict:
+def build_profile(subscription_url: str, enhanced: bool, udp_proxies: list[dict] | None = None) -> dict:
+    udp_proxies = udp_proxies or []
     profile = {
         "ipv6": False,
         "hijack_dns": ["*"],
         "close_connections_on_policy_change": False,
         "dns": build_dns(),
-        "policy_groups": build_policy_groups(subscription_url),
+        "policy_groups": build_policy_groups(
+            subscription_url,
+            [proxy["trojan"]["name"] for proxy in udp_proxies],
+        ),
         "rules": build_rules(),
         "default_subscription_group": "订阅",
         "default_proxy_group": "PROXY",
         "modules": enabled_module_urls() if enhanced else [],
     }
+    if udp_proxies:
+        profile["proxies"] = udp_proxies
     return profile
+
+
+def fetch_subscription(subscription_url: str) -> dict:
+    request = urllib.request.Request(subscription_url, headers={"User-Agent": "Egern/1.0"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        data = yaml.safe_load(response.read().decode("utf-8-sig"))
+    if not isinstance(data, dict) or not isinstance(data.get("proxies"), list):
+        raise ValueError("订阅响应不是有效的 YAML 节点列表")
+    return data
+
+
+def build_udp_trojan_snapshot(subscription: dict) -> list[dict]:
+    proxies: list[dict] = []
+    names: set[str] = set()
+    for index, source in enumerate(subscription.get("proxies", []), start=1):
+        if not isinstance(source, dict) or source.get("type") != "trojan":
+            continue
+        required = ["name", "server", "port", "password"]
+        if any(source.get(key) in (None, "") for key in required):
+            raise ValueError(f"订阅中的第 {index} 个 Trojan 节点缺少必要字段")
+        name = str(source["name"])
+        if name in names:
+            raise ValueError("订阅中的 Trojan 节点名称重复，无法安全覆盖")
+        names.add(name)
+        body = {
+            "name": name,
+            "server": source["server"],
+            "port": source["port"],
+            "password": source["password"],
+            "udp_relay": True,
+            "block_quic": False,
+            "skip_tls_verify": bool(source.get("skip-cert-verify", False)),
+        }
+        if source.get("sni"):
+            body["sni"] = source["sni"]
+        proxies.append({"trojan": body})
+    if not proxies:
+        raise ValueError("订阅中没有可转换的 Trojan 节点")
+    return proxies
 
 
 def read_subscription_url(source: Path) -> str:
     with source.open("r", encoding="utf-8-sig") as handle:
         data = yaml.safe_load(handle)
     for group in data.get("policy_groups", []):
-        external = group.get("external") if isinstance(group, dict) else None
-        if external and external.get("name") == "订阅":
-            urls = external.get("urls") or []
+        if not isinstance(group, dict) or len(group) != 1:
+            continue
+        body = next(iter(group.values()))
+        if isinstance(body, dict) and body.get("name") == "订阅":
+            urls = body.get("urls") or []
             if len(urls) != 1 or not isinstance(urls[0], str):
                 raise ValueError("原配置的订阅组必须且只能包含一个 URL")
             return urls[0]
-    raise ValueError("原配置中未找到名为“订阅”的 external 策略组")
+    raise ValueError("原配置中未找到带 URL 的“订阅”策略组")
 
 
 def write_yaml(path: Path, profile: dict, private: bool) -> None:
@@ -299,13 +361,15 @@ def main() -> int:
         if not args.source or not args.private_dir:
             parser.error("--source 与 --private-dir 必须同时提供")
         subscription_url = read_subscription_url(args.source.resolve())
+        udp_proxies = build_udp_trojan_snapshot(fetch_subscription(subscription_url))
         private_dir = args.private_dir.resolve()
         if egern_dir.parent.resolve() in private_dir.parents or private_dir == egern_dir.parent.resolve():
             raise ValueError("私有输出目录必须位于 Git 仓库之外")
-        write_yaml(private_dir / "Profile.enhanced.yaml", build_profile(subscription_url, True), True)
-        write_yaml(private_dir / "Profile.safe.yaml", build_profile(subscription_url, False), True)
+        write_yaml(private_dir / "Profile.enhanced.yaml", build_profile(subscription_url, True, udp_proxies), True)
+        write_yaml(private_dir / "Profile.safe.yaml", build_profile(subscription_url, False, udp_proxies), True)
+        write_yaml(private_dir / "Profile.rollback.yaml", build_profile(subscription_url, False), True)
 
-    print("Egern 配置已生成；未输出订阅 URL 或节点信息。")
+    print("Egern 配置已生成；私有版已为 Trojan 节点启用 UDP，未输出订阅 URL 或节点信息。")
     return 0
 
 
