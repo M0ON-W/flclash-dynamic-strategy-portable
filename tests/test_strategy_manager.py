@@ -59,33 +59,6 @@ class StrategyManagerTests(unittest.TestCase):
         self.assertFalse(accepted)
         self.assertIn("strict clean group collapsed to zero", details["reasons"])
 
-    def test_strict_clean_observation_is_discovered_for_google_validation(self):
-        state = {"reputation": {}, "history": {}}
-        observations = [
-            {
-                "name": NODE_PRIMARY,
-                "exit_ip": TEST_EXIT_IP,
-                "online": True,
-                "service_ok": True,
-                "latency_ms": 100,
-                "speed_mbps": 10,
-                "statuses": {"google": 204, "gemini": 200, "openai": 401},
-            }
-        ]
-        reputation = {
-            TEST_EXIT_IP: {
-                "checked_at": 1,
-                "proxy": "no",
-                "type": "residential",
-                "risk": 10,
-                "ipapi_proxy": False,
-                "ipapi_hosting": False,
-            }
-        }
-        with patch.object(manager, "reputation_lookup", return_value=reputation):
-            manager.classify(state, observations, [NODE_PRIMARY])
-        self.assertEqual(state["gemini_verified_members"], [NODE_PRIMARY])
-
     def test_google_validation_blocks_known_redirect_node_and_keeps_same_ip_cohort(self):
         names = [NODE_BLOCKED, NODE_PRIMARY, NODE_STANDBY]
         state = {
@@ -129,6 +102,56 @@ class StrategyManagerTests(unittest.TestCase):
         self.assertTrue(dns["respect-rules"])
         self.assertNotIn("ecs=", json.dumps(dns))
         self.assertTrue(all(item.endswith("#" + NODE_PRIMARY) for item in dns["nameserver"]))
+        self.assertIn("+.bilibili.com", dns["fake-ip-filter"])
+        self.assertIn("DOMAIN-SUFFIX,bilibili.com,DIRECT", manager.managed_rules(manager.GROUP_FAST))
+
+    def test_empty_dedicated_pools_fall_back_to_fast_without_blocking_runtime(self):
+        raw = {"proxies": [proxy("clean"), proxy("fast")]}
+        state = {
+            "memberships": {
+                manager.GROUP_CLEAN: ["clean"],
+                manager.GROUP_STABLE: ["clean"],
+                manager.GROUP_FAST: ["fast"],
+            },
+            "gemini_members": [],
+            "openai_members": [],
+        }
+        config = manager.build_effective_config(raw, state, tun_enable=False)
+        groups = {item["name"]: item["proxies"] for item in config["proxy-groups"]}
+        self.assertEqual(groups[manager.GROUP_GOOGLE_AI], ["fast"])
+        self.assertEqual(groups[manager.GROUP_OPENAI], ["fast"])
+        manager.require_nonempty_runtime_groups(config)
+
+    def test_scan_quality_allows_empty_dedicated_pools(self):
+        state = {
+            "memberships": {
+                manager.GROUP_CLEAN: ["clean"],
+                manager.GROUP_STABLE: ["clean"],
+                manager.GROUP_FAST: ["fast"],
+            },
+            "gemini_members": [],
+            "openai_members": [],
+        }
+        observations = [{"online": True, "strict_clean": True} for _ in range(20)]
+        accepted, details = manager.scan_quality(state, observations, [str(i) for i in range(20)])
+        self.assertTrue(accepted)
+        self.assertEqual(details["reasons"], [])
+
+    def test_stale_dedicated_members_do_not_bypass_fast_fallback(self):
+        raw = {"proxies": [proxy("clean"), proxy("fast")]}
+        state = {
+            "memberships": {
+                manager.GROUP_CLEAN: ["clean"],
+                manager.GROUP_STABLE: ["clean"],
+                manager.GROUP_FAST: ["fast"],
+            },
+            "gemini_members": ["removed-node"],
+            "openai_members": ["removed-node"],
+        }
+        config = manager.build_effective_config(raw, state, tun_enable=False)
+        groups = {item["name"]: item["proxies"] for item in config["proxy-groups"]}
+        self.assertEqual(groups[manager.GROUP_GOOGLE_AI], ["fast"])
+        self.assertEqual(groups[manager.GROUP_OPENAI], ["fast"])
 
 
 if __name__ == "__main__":

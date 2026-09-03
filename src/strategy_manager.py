@@ -65,6 +65,14 @@ GROUP_GOOGLE_AI = "__谷歌AI"
 GROUP_OPENAI = "__OpenAI"
 MANAGED_GROUPS = [GROUP_CLEAN, GROUP_STABLE, GROUP_FAST]
 RUNTIME_GROUPS = MANAGED_GROUPS + [GROUP_GOOGLE_AI, GROUP_OPENAI]
+REQUIRED_RUNTIME_GROUPS = MANAGED_GROUPS
+
+BILIBILI_DOMAINS = (
+    "bilibili.com",
+    "bilivideo.com",
+    "biliapi.net",
+    "hdslb.com",
+)
 
 OPENAI_DOMAIN_SUFFIXES = (
     "openai.com",
@@ -328,6 +336,7 @@ def managed_rule_providers() -> dict[str, dict]:
 def managed_rules(default_group: str) -> list[str]:
     return [
         *STORE_DIRECT_RULES,
+        *(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in BILIBILI_DOMAINS),
         "DOMAIN-SUFFIX,local,DIRECT",
         "DOMAIN-SUFFIX,lan,DIRECT",
         "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
@@ -381,7 +390,13 @@ def strict_dns(dns_proxy: str | None = None) -> dict:
         "enhanced-mode": "fake-ip",
         "fake-ip-range": "198.18.0.1/16",
         "fake-ip-filter-mode": "blacklist",
-        "fake-ip-filter": ["*.lan", "*.local", "localhost", "localhost.*"],
+        "fake-ip-filter": [
+            "*.lan",
+            "*.local",
+            "localhost",
+            "localhost.*",
+            *(f"+.{domain}" for domain in BILIBILI_DOMAINS),
+        ],
         "nameserver": [
             f"https://1.1.1.1/dns-query{route}",
             f"https://8.8.8.8/dns-query{route}",
@@ -439,6 +454,10 @@ def build_effective_config(raw: dict, state: dict, tun_enable: bool = True) -> d
         fast = names[:20]
     if not stable and state.get("stable_provisional"):
         stable = clean
+    # Dedicated AI pools are optional. A temporary empty result must not turn a
+    # valid general proxy configuration into REJECT or block scheduled updates.
+    google_ai = google_ai or fast
+    openai = openai or fast
 
     config["proxy-groups"] = [
         group_config(GROUP_CLEAN, clean),
@@ -616,6 +635,8 @@ function main(config) {{
   googleAiMembers = validMembers(googleAiMembers);
   openaiMembers = validMembers(openaiMembers);
   if (!fastMembers.length) fastMembers = proxyNames.slice(0, 20);
+  if (!googleAiMembers.length) googleAiMembers = fastMembers.slice();
+  if (!openaiMembers.length) openaiMembers = fastMembers.slice();
   function membersOrReject(items) {{ return items.length ? items : ['REJECT']; }}
   var managedRuleProviders = {rule_providers};
   var existingRuleProviders = config['rule-providers'];
@@ -1215,22 +1236,6 @@ def classify(
             -(item.get("speed_mbps") or 0),
         ),
     )
-    blocked_google = set(DEFAULT_GOOGLE_BLOCKED_MEMBERS)
-    blocked_google.update(state.get("gemini_blocked_members") or [])
-    verified_google = sanitize_members(
-        state.get("gemini_verified_members") or state.get("gemini_members") or [],
-        set(names),
-    )
-    discovered_google = [
-        item["name"]
-        for item in clean_ranked
-        if item["name"] not in blocked_google
-        and (item.get("statuses") or {}).get("google") == 204
-        and (item.get("statuses") or {}).get("gemini") == 200
-    ]
-    state["gemini_verified_members"] = verified_google + [
-        name for name in discovered_google if name not in verified_google
-    ]
     openai_candidates = [
         item["name"]
         for item in clean_ranked
@@ -1487,8 +1492,6 @@ def remember_last_known_good(state: dict, names: list[str]) -> bool:
     }
     required = [
         *(snapshot["memberships"].get(group) or [] for group in MANAGED_GROUPS),
-        snapshot["gemini_members"],
-        snapshot["openai_members"],
     ]
     if not all(required):
         return False
@@ -1505,7 +1508,7 @@ def restore_last_known_good(state: dict, names: list[str]) -> bool:
     fast = sanitize_members(memberships.get(GROUP_FAST) or [], allowed)
     google_ai = sanitize_members(snapshot.get("gemini_members") or [], allowed)
     openai = sanitize_members(snapshot.get("openai_members") or [], allowed)
-    if not all((clean, stable, fast, google_ai, openai)):
+    if not all((clean, stable, fast)):
         return False
     state["memberships"] = {
         GROUP_CLEAN: clean,
@@ -1537,10 +1540,6 @@ def scan_quality(state: dict, observations: list[dict], names: list[str]) -> tup
         reasons.append("stable clean group collapsed to zero")
     if not memberships.get(GROUP_FAST):
         reasons.append("fast group collapsed to zero")
-    if not state.get("gemini_members"):
-        reasons.append("Google group collapsed to zero")
-    if not state.get("openai_members"):
-        reasons.append("OpenAI group collapsed to zero")
     if any(name in set(DEFAULT_GOOGLE_BLOCKED_MEMBERS) for name in state.get("gemini_members") or []):
         reasons.append("blocked Google member re-entered the active group")
     return not reasons, {
@@ -1560,7 +1559,7 @@ def require_nonempty_runtime_groups(config: dict) -> None:
     }
     empty = [
         name
-        for name in RUNTIME_GROUPS
+        for name in REQUIRED_RUNTIME_GROUPS
         if not groups.get(name) or groups.get(name) == ["REJECT"]
     ]
     if empty:
@@ -1601,14 +1600,7 @@ def install() -> None:
     state = load_json(STATE_FILE, {"memberships": {}, "history": {}, "reputation": {}})
     raw = load_profile(current_profile_id())
     names = [str(proxy["name"]) for proxy in candidate_proxies(raw)]
-    bootstrap = names[:3]
-    memberships = state.setdefault("memberships", {})
-    memberships[GROUP_CLEAN] = memberships.get(GROUP_CLEAN) or bootstrap
-    memberships[GROUP_STABLE] = memberships.get(GROUP_STABLE) or bootstrap
-    memberships[GROUP_FAST] = memberships.get(GROUP_FAST) or names[:20]
-    state["gemini_members"] = state.get("gemini_members") or bootstrap
-    state["openai_members"] = state.get("openai_members") or bootstrap
-    state["stable_provisional"] = True
+    state.setdefault("memberships", {})[GROUP_FAST] = names[:20]
     choose_dns_proxy(state, names)
     script = generate_override_script(state)
     ensure_script_binding(script, clear_old=True)
@@ -1947,6 +1939,10 @@ def safe_apply() -> dict:
                 members = state.get("openai_members")
             else:
                 members = (state.get("memberships") or {}).get(group)
+            members = sanitize_members(list(members or []), set(names))
+            dedicated_pool_fallback = group in {GROUP_GOOGLE_AI, GROUP_OPENAI} and not members
+            if dedicated_pool_fallback:
+                members = (state.get("memberships") or {}).get(GROUP_FAST)
             if not members:
                 raise RuntimeError(f"group {group} has no configured members")
             member_checks = {}
@@ -1959,8 +1955,8 @@ def safe_apply() -> dict:
                     member_checks[member] = {"ok": False, "checks": {"member": "missing"}}
                     continue
                 ok, checks = mixed_port_health(
-                    expect_openai=group == GROUP_OPENAI,
-                    expect_google=group == GROUP_GOOGLE_AI,
+                    expect_openai=group == GROUP_OPENAI and not dedicated_pool_fallback,
+                    expect_google=group == GROUP_GOOGLE_AI and not dedicated_pool_fallback,
                     proxy_port=proxy_port,
                 )
                 member_checks[member] = {"ok": ok, "checks": checks}
@@ -1968,8 +1964,8 @@ def safe_apply() -> dict:
                     successful.append(member)
                     if group != GROUP_GOOGLE_AI:
                         break
-            ok = len(successful) == len(members_to_test) if group == GROUP_GOOGLE_AI else bool(successful)
-            results[group] = {"ok": ok, "members": member_checks}
+            ok = len(successful) == len(members_to_test) if group == GROUP_GOOGLE_AI and not dedicated_pool_fallback else bool(successful)
+            results[group] = {"ok": ok, "members": member_checks, "fallback": dedicated_pool_fallback}
             if not ok:
                 raise RuntimeError(
                     f"group {group} failed connectivity verification: {member_checks}"

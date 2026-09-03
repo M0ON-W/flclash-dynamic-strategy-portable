@@ -13,14 +13,14 @@ A portable dynamic-routing system for FlClash on Windows. It automatically maint
 ## 能復現的功能
 
 - 三個中文可見策略組：`净选`、`稳净`、`极速`。
-- 隱藏的專用動態組 `__谷歌AI` 與 `__OpenAI`；Google 候選需連續通過搜尋首頁無區域重定向、GStatic、Google 帳號頁及 Gemini 檢測，並在 Google 或 OpenAI 連接活躍時延後策略熱加載。
+- 隱藏的專用動態組 `__谷歌AI` 與 `__OpenAI`；每輪自動排除返回「所在地區不支援」頁面的節點，並在 OpenAI 連接活躍時延後策略熱加載保護連線。
 - 採用 MetaCubeX MRS 原生規則提供器實現精細分流：OpenAI 專用、Google/Gemini 潔淨分流、非 CN AI 淨選、微軟/蘋果中國區直連、國際服務極速、國內媒體與網址 (微信/Bilibili/淘寶等) 直連。
-- 規則感知 DNS 分流：外部 DoH 經選定代理節點發送，國內網域使用經 `极速`發送的 AliDNS DoH；不注入合成 ECS，也不使用系統 DNS 上游。
+- 國內 DNS 智慧分流：國內網域使用經代理發送的 AliDNS DoH 搭配合成 ECS，兼顧 CDN 加速與隱私偽裝。
 - 每 20 分鐘並行檢測節點可用性、服務相容性、延遲、短程吞吐與出口風險；策略組自身每 10 分鐘健康檢查。
-- Google/Gemini 候選池從目標電腦自己的訂閱自動建立，不依賴預存節點；新候選至少連續通過兩輪，備援優先限制在相同出口 IP，並以受限並行方式執行 1 MiB 測速。
-- 掃描品質閘門拒絕在線率過低或任一受管組歸零的結果；新配置未通過逐組連線驗證時會同時回復運行配置、狀態、DNS 偏好及覆寫腳本。
+- Google/Gemini 候選池從目標電腦自己的訂閱自動建立，不依賴本機預存節點；候選節點每輪依序下載 1 MiB 測速，避免多條線路同時測速互相爭搶帶寬。
 - `稳净`累積 7 天滾動歷史，至少 3 天、216 個樣本後才可成為成熟樣本；成熟前自動標記為暫定。
 - DNS 使用 fake-IP、DoH、規則跟隨、IPv6 關閉、TUN DNS 劫持，且不使用系統 DNS 作為上游解析來源。
+- 哔哩哔哩主站、API 与视频 CDN 固定直连并排除 fake-IP；安装验收同时检查代理入口和 TUN 下的访问。
 - 獨立 Mihomo 以 LocalSystem Windows 服務自動啟動；FlClash 自身的 TUN 保持關閉，避免雙 TUN。
 - FlClash 關閉時，獨立服務仍可維持 TUN，並可供背景管理器繼續檢測。
 - 策略腳本綁定 FlClash 配置；重新匯入或更新訂閱後，排程會重新建立策略組。

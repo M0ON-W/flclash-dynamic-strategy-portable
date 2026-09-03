@@ -7,14 +7,15 @@ This package reproduces the FlClash dynamic-routing project on a compatible Wind
 ## Features
 
 - Three visible Chinese policy groups: `净选` (clean), `稳净` (stable and clean), and `极速` (fast).
-- Hidden AI egress groups (`__谷歌AI` and `__OpenAI`). Google candidates must repeatedly pass Search without a regional redirect, GStatic, Google Accounts, and Gemini checks; hot reloads are deferred while Google or OpenAI connections are active.
+- Hidden AI egress groups (`__谷歌AI` and `__OpenAI`). Google candidates are filtered for regional redirects; when a dedicated pool is temporarily empty or stale, it falls back to `极速` so ordinary routing remains available.
 - Granular rule-provider routing via MetaCubeX MRS: AI & Google through clean groups, Microsoft/Apple China & Chinese domestic services (WeChat, Bilibili, Taobao) DIRECT, and international traffic through Fast.
-- Rule-aware DNS routing: external DoH uses the selected proxy, while domestic domains use AliDNS DoH through `极速`; no synthetic ECS or system DNS upstream is used.
+- Rule-aware DNS routing: external DoH uses the selected proxy, while domestic domains use AliDNS DoH through `极速`; no system DNS upstream is used.
 - Parallel node availability, service compatibility, latency, short-throughput, and egress-risk checks every 20 minutes.
 - Bounded-parallel 1 MiB throughput measurements for Google/Gemini candidates, with two consecutive validation passes and same-exit-IP standby preference.
-- A scan-quality gate rejects low-availability or zero-member results. Failed candidate reloads restore runtime configuration, state, DNS preferences, and the override script together.
+- A scan-quality gate rejects low-availability or empty required groups. Failed candidate reloads restore runtime configuration, state, DNS preferences, and the override script together.
 - A seven-day rolling history; `稳净` requires at least 216 samples over three days before becoming mature.
 - Fake-IP DNS, DoH upstreams, rule-aware DNS routing, disabled IPv6, and TUN interception of TCP/UDP port 53.
+- Bilibili web, API, image, and video CDN domains are pinned to DIRECT and excluded from fake-IP; verification checks both the proxy entry and independent TUN access.
 - An independent LocalSystem Mihomo service with automatic startup, failure recovery, and its own `MihomoSvc` TUN adapter.
 - Hidden `pythonw.exe` scheduled execution with no recurring terminal windows.
 - Preflight validation, installation backup, runtime verification, safe configuration reload, and explicit restoration tooling.

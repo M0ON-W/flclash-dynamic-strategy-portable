@@ -32,7 +32,7 @@ def request_json(base: str, path: str, config_path: Path) -> dict:
         return json.loads(response.read())
 
 
-def curl_status(arguments: list[str]) -> int:
+def curl_status(arguments: list[str], connect_timeout: int = 5, max_time: int = 12) -> int:
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     result = subprocess.run(
         [
@@ -44,13 +44,18 @@ def curl_status(arguments: list[str]) -> int:
             "--write-out",
             "%{http_code}",
             "--connect-timeout",
-            "5",
+            str(connect_timeout),
             "--max-time",
-            "12",
+            str(max_time),
+            "--retry",
+            "2",
+            "--retry-delay",
+            "1",
+            "--retry-all-errors",
             *arguments,
         ],
         capture_output=True,
-        timeout=15,
+        timeout=(max_time + 5) * 3,
         creationflags=flags,
     )
     try:
@@ -108,6 +113,15 @@ def main() -> int:
     if proxy_google != 204:
         errors.append("FlClash 7890 入口无法访问 Google 204")
 
+    proxy_bilibili = curl_status(
+        ["--proxy", "http://127.0.0.1:7890", "https://api.bilibili.com/x/web-interface/nav"],
+        connect_timeout=12,
+        max_time=25,
+    )
+    checks["proxy_bilibili_http"] = proxy_bilibili
+    if proxy_bilibili != 200:
+        errors.append("FlClash 7890 入口无法访问哔哩哔哩")
+
     if not args.skip_tun_check:
         tun_google = curl_status(
             ["--noproxy", "*", "https://www.google.com/generate_204"]
@@ -115,6 +129,14 @@ def main() -> int:
         checks["tun_google_http"] = tun_google
         if tun_google != 204:
             errors.append("独立 TUN 无法访问 Google 204")
+        tun_bilibili = curl_status(
+            ["--noproxy", "*", "https://api.bilibili.com/x/web-interface/nav"],
+            connect_timeout=12,
+            max_time=25,
+        )
+        checks["tun_bilibili_http"] = tun_bilibili
+        if tun_bilibili != 200:
+            errors.append("独立 TUN 无法直连哔哩哔哩")
 
     result = {"ok": not errors, "checks": checks, "errors": errors}
     print(json.dumps(result, ensure_ascii=False, indent=2))
