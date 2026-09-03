@@ -101,9 +101,32 @@ class StrategyManagerTests(unittest.TestCase):
         dns = manager.strict_dns(NODE_PRIMARY)
         self.assertTrue(dns["respect-rules"])
         self.assertNotIn("ecs=", json.dumps(dns))
-        self.assertTrue(all(item.endswith("#" + NODE_PRIMARY) for item in dns["nameserver"]))
+        self.assertTrue(all(item.endswith("#" + manager.GROUP_FAST) for item in dns["nameserver"]))
         self.assertIn("+.bilibili.com", dns["fake-ip-filter"])
+        self.assertIn("+.bilicdn1.com", dns["fake-ip-filter"])
         self.assertIn("DOMAIN-SUFFIX,bilibili.com,DIRECT", manager.managed_rules(manager.GROUP_FAST))
+        self.assertIn("DOMAIN-SUFFIX,bilicdn1.com,DIRECT", manager.managed_rules(manager.GROUP_FAST))
+        self.assertEqual(
+            dns["nameserver-policy"]["+.bilibili.com"], list(manager.BILIBILI_DIRECT_DOH)
+        )
+        self.assertEqual(
+            dns["nameserver-policy"]["+.bilicdn1.com"], list(manager.BILIBILI_DIRECT_DOH)
+        )
+        self.assertEqual(
+            dns["nameserver-policy"][f"rule-set:{manager.RULESET_CN}"],
+            list(manager.BILIBILI_DIRECT_DOH),
+        )
+        self.assertEqual(next(iter(dns["nameserver-policy"])), "+.bilibili.com")
+        raw = {"proxies": [proxy("clean"), proxy("fast")]}
+        state = {
+            "memberships": {
+                manager.GROUP_CLEAN: ["clean"],
+                manager.GROUP_STABLE: ["clean"],
+                manager.GROUP_FAST: ["fast"],
+            }
+        }
+        config = manager.build_effective_config(raw, state, tun_enable=True)
+        self.assertEqual(config["tun"]["mtu"], manager.TUN_MTU)
 
     def test_empty_dedicated_pools_fall_back_to_fast_without_blocking_runtime(self):
         raw = {"proxies": [proxy("clean"), proxy("fast")]}

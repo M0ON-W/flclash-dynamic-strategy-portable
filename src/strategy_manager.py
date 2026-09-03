@@ -57,6 +57,7 @@ GEMINI_MAX_ACTIVE = 2
 GEMINI_MIN_CONSECUTIVE_PASSES = 2
 MIN_SCAN_ONLINE_RATIO = 0.20
 MIN_SCAN_ONLINE_COUNT = 3
+TUN_MTU = 1400
 
 GROUP_CLEAN = "净选"
 GROUP_STABLE = "稳净"
@@ -72,6 +73,15 @@ BILIBILI_DOMAINS = (
     "bilivideo.com",
     "biliapi.net",
     "hdslb.com",
+    "bilicdn1.com",
+    "bilicdn2.com",
+    "biliapi.com",
+    "biliimg.com",
+    "bilivideo.cn",
+)
+BILIBILI_DIRECT_DOH = (
+    "https://223.5.5.5/dns-query",
+    "https://223.6.6.6/dns-query",
 )
 
 OPENAI_DOMAIN_SUFFIXES = (
@@ -372,11 +382,8 @@ def managed_rules(default_group: str) -> list[str]:
 
 
 def strict_dns(dns_proxy: str | None = None) -> dict:
-    route = f"#{dns_proxy}" if dns_proxy else ""
-    domestic_doh = [
-        f"https://223.5.5.5/dns-query#{GROUP_FAST}",
-        f"https://223.6.6.6/dns-query#{GROUP_FAST}",
-    ]
+    route = f"#{GROUP_FAST}"
+    domestic_doh = list(BILIBILI_DIRECT_DOH)
     return {
         "enable": True,
         "listen": "127.0.0.1:1053",
@@ -407,6 +414,7 @@ def strict_dns(dns_proxy: str | None = None) -> dict:
         ],
         "fallback": [],
         "nameserver-policy": {
+            **{f"+.{domain}": list(BILIBILI_DIRECT_DOH) for domain in BILIBILI_DOMAINS},
             f"rule-set:{RULESET_CN}": domestic_doh,
             f"rule-set:{RULESET_MICROSOFT_CN}": domestic_doh,
             f"rule-set:{RULESET_APPLE_CN}": domestic_doh,
@@ -496,6 +504,7 @@ def build_effective_config(raw: dict, state: dict, tun_enable: bool = True) -> d
             "enable": tun_enable,
             "device": "FlClash",
             "stack": "mixed",
+            "mtu": TUN_MTU,
             "auto-route": True,
             "auto-detect-interface": True,
             "dns-hijack": ["any:53", "tcp://any:53"],
@@ -664,6 +673,7 @@ function main(config) {{
   tun.enable = {tun_enabled};
   tun.device = 'FlClash';
   tun.stack = 'mixed';
+  tun.mtu = 1400;
   tun['auto-route'] = true;
   tun['auto-detect-interface'] = true;
   tun['dns-hijack'] = ['any:53','tcp://any:53'];

@@ -12,6 +12,7 @@ import yaml
 
 APP_HOME = Path(os.environ["APPDATA"]) / "com.follow" / "clash"
 SERVICE_CONFIG = APP_HOME / "managed" / "mihomo-service" / "config.yaml"
+EXPECTED_TUN_MTU = 1400
 
 
 def headers(config_path: Path) -> dict[str, str]:
@@ -103,6 +104,25 @@ def main() -> int:
         checks["service_tun"] = service_tun
         if not args.skip_tun_check and not service_tun:
             errors.append("独立服务 TUN 未启用")
+        persisted = yaml.safe_load(SERVICE_CONFIG.read_text(encoding="utf-8")) or {}
+        persisted_mtu = (persisted.get("tun") or {}).get("mtu")
+        checks["service_tun_mtu"] = persisted_mtu
+        if persisted_mtu != EXPECTED_TUN_MTU:
+            errors.append(f"独立服务 TUN MTU 不是 {EXPECTED_TUN_MTU}")
+        dns_policy = (persisted.get("dns") or {}).get("nameserver-policy") or {}
+        direct_dns_keys = [
+            "+.bilibili.com",
+            "+.bilicdn1.com",
+            "rule-set:__managed-cn",
+        ]
+        direct_dns_ok = all(
+            dns_policy.get(key)
+            and all("#" not in str(server) for server in dns_policy[key])
+            for key in direct_dns_keys
+        )
+        checks["domestic_direct_dns"] = direct_dns_ok
+        if not direct_dns_ok:
+            errors.append("国内直连域名仍依赖代理 DNS 出口")
     except Exception as exc:
         errors.append(f"独立服务控制器检查失败: {exc}")
 
