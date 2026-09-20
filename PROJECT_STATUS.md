@@ -11,13 +11,13 @@
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
-| 分支与同步 | `main` 与 origin/main 同步，双方均为 `28131d6`（v1.0.2） | `git ls-remote origin` |
+| 分支与同步 | `main` 与 origin/main 同步（推送后由下面的命令复核，含本次文档提交） | `git ls-remote origin` 与 `git status -sb` |
 | 工作区 | 干净 | `git status --short` 无输出 |
 | 单元测试 | 22 个用例全部通过 | `python -m pytest tests -q` |
 | 校验值 | `SHA256SUMS.txt` 64 条覆盖全部跟踪文件（除 `.github/` 与自身） | 逐条重算 SHA-256 一致 |
 | 脚本编码 | `scripts/` 下 7 个 `.ps1` 均为 UTF-8 with BOM，PowerShell 5.1 与 7 均可解析 | 两个引擎下 `parseErrors=0` |
 | 版本库体积 | 打包 184.62 KiB（瘦身前 25.17 MiB），历史中无大于 500 KiB 的对象 | `git count-objects -vH` |
-| 标签 | `v1.0.0`（指向重写后的初始提交）、`v1.0.2` | `git tag -l` |
+| 标签 | `v1.0.0`（指向重写后的初始提交）、`v1.0.2`（指向 28131d6，即 1.0.2 的发布提交；其后的文档提交不改变标签） | `git tag -l`、`git rev-list -n1 v1.0.2` |
 | 二进制 | `bin/*.exe` 只存在于本机且未跟踪，用 `scripts/Fetch-Binaries.ps1` 按哈希取回 | `git ls-files bin` 仅 `bin/README.md` |
 | 历史重写影响 | 2026-09-20 的重写改变了全部提交哈希；外部若引用过旧 commit 会失效 | `git log --oneline` |
 
@@ -71,4 +71,3 @@
 2. 只写当场核实过的事实，并在「证据」列写清取数命令或文件路径；不确定的内容放进「已知问题与待核实」。
 3. 不在本文件写订阅地址、节点凭据、出口 IP、账号信息；观察器出口一律用其 HMAC 标识描述。
 4. 改动本文件后运行 `python -m pytest tests -q` 与 `scripts\Update-Checksums.ps1`，保持测试与校验值同步。
-
