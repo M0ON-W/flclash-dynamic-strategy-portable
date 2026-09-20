@@ -3,20 +3,23 @@
 > 本文件是项目状态的动态入口：每次部署、配置改动、发版或线上状态明显变化后都要更新。
 > 更新规则见文末；只写核实过的事实，并附上取数命令与时间。
 
-- 最后更新：2026-09-20（本机核对时间 15:30）
-- 当前版本：v1.0.1（`manifest.json`）
+- 最后更新：2026-09-20（本机状态核对 15:30；仓库瘦身、v1.0.2 发布与推送 15:38）
+- 当前版本：v1.0.2（`manifest.json`，标签 `v1.0.2`）
 - 仓库：`D:\Codex\flclash修改`，origin `https://github.com/M0ON-W/flclash-dynamic-strategy-portable`
 
 ## 仓库状态
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
-| 分支与同步 | `main` 本地领先 origin 6 个提交（整理与修复，尚未推送） | `git rev-list --left-right --count origin/main...main` |
+| 分支与同步 | `main` 与 origin/main 同步，双方均为 `28131d6`（v1.0.2） | `git ls-remote origin` |
 | 工作区 | 干净 | `git status --short` 无输出 |
 | 单元测试 | 22 个用例全部通过 | `python -m pytest tests -q` |
-| 校验值 | `SHA256SUMS.txt` 62 条全部匹配 | 逐条重算 SHA-256，0 处不符 |
-| 脚本编码 | `scripts/*.ps1` 均为 UTF-8 with BOM，PowerShell 5.1 与 7 均可解析 | 两个引擎下 `parseErrors=0` |
-| 版本库体积 | 打包 25.05 MiB，其中 `bin/mihomo.exe`（50 MB）与 `bin/FlClashMihomoService.exe`（18 MB）占绝大部分 | `git count-objects -vH`、`git verify-pack` |
+| 校验值 | `SHA256SUMS.txt` 64 条覆盖全部跟踪文件（除 `.github/` 与自身） | 逐条重算 SHA-256 一致 |
+| 脚本编码 | `scripts/` 下 7 个 `.ps1` 均为 UTF-8 with BOM，PowerShell 5.1 与 7 均可解析 | 两个引擎下 `parseErrors=0` |
+| 版本库体积 | 打包 184.62 KiB（瘦身前 25.17 MiB），历史中无大于 500 KiB 的对象 | `git count-objects -vH` |
+| 标签 | `v1.0.0`（指向重写后的初始提交）、`v1.0.2` | `git tag -l` |
+| 二进制 | `bin/*.exe` 只存在于本机且未跟踪，用 `scripts/Fetch-Binaries.ps1` 按哈希取回 | `git ls-files bin` 仅 `bin/README.md` |
+| 历史重写影响 | 2026-09-20 的重写改变了全部提交哈希；外部若引用过旧 commit 会失效 | `git log --oneline` |
 
 ## 本机运行状态（2026-09-20 15:30 核对）
 
@@ -53,12 +56,14 @@
 - `稳净` 仍为暂定状态（`provisional=true`），默认 MATCH 仍走 `极速`；成熟条件见 `docs/技術架構.md`。
 - 本机 `managed\` 下存在旧文件 `strategy_manager.py.bak-openai-websocket` 与 `netflix-probe.yaml`，未清理；确认无用后再删除。
 - Netflix 专用组依赖 `NETFLIX_PIN_PATTERNS` 匹配的固定线路，订阅变更后需要复核候选是否仍存在。
+- 历史重写只影响引用旧 commit 哈希的外部链接；标签 `v1.0.0` 与 `v1.0.2` 均可用。
 
 ## 下一步
 
-- 把整理后的仓库推送到 origin，并决定是否对 `bin/` 大文件做历史瘦身。
-- 观察器中断原因核实后，再评估是否重新累积观察窗口。
-- 视需要为 Netflix 固定出口与仓库整理打一个发布标签，并在 `docs/releases/` 补发布说明。
+- 核实观察器中断原因，再决定是否重新累积观察窗口。
+- 复核 Netflix 固定出口在当前订阅下是否仍命中。
+- 后续发版流程：更新 `manifest.json` 版本与 `docs/releases/` 说明 → `scripts\Update-Checksums.ps1` → 提交并打标签 → 推送。
+- 可选清理：`_local\releases\FlClash-Dynamic-Strategy-Portable-1.0.0\` 与 `_local\vendor\` 中的二进制副本与 ZIP 重复，确认不再需要后可直接删除。
 
 ## 更新规则
 
