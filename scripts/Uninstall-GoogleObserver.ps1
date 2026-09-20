@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param([switch]$RemoveObservationData)
 
 $ErrorActionPreference = 'Stop'

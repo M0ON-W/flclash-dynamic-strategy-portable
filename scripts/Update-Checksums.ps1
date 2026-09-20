@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     重新生成 SHA256SUMS.txt。
 

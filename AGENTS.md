@@ -26,3 +26,7 @@
 - 文档使用简体中文，路径、命令、配置名保持英文原文。
 - 提交信息使用英文祈使句（`feat:`、`fix:`、`chore:`、`docs:`）。
 
+## 脚本编码
+
+- `.ps1` 文件必须保存为 UTF-8 with BOM。Windows PowerShell 5.1 会把无 BOM 的 UTF-8 当成 ANSI 读取，含中文的脚本会直接报语法错误。
+- Python 文件保持 UTF-8（无需 BOM）。

@@ -22,6 +22,7 @@
 
 - 观察器安装脚本改为从 `src/` 取源文件，修正目录整理后找不到文件的问题。
 - 单元测试在 `src/` 布局下可通过 `tests/conftest.py` 正确导入模块（此前发布版仓库的测试无法直接运行）。
+- `scripts/` 下的 PowerShell 脚本改为 UTF-8 with BOM：无 BOM 时 Windows PowerShell 5.1 按 ANSI 解码，含中文的脚本会报语法错误，无法在系统自带 PowerShell 中运行。
 
 ## [1.0.1] - 2026-08-27
 
