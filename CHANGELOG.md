@@ -4,10 +4,16 @@
 
 ## [未发布]
 
+- 暂无。
+
+## [1.0.2] - 2026-09-20
+
 ### 新增
 
 - Netflix 专用出口组 `__Netflix` 与 `__managed-netflix` 规则集：播放出现空档时按 7 天/24 小时在线率、探测延迟与 4 小时冷却重新钉选出口，通过两个控制器同时生效（提交 af5c509）。
 - Google 旁路只读观察器纳入版本管理：`src/google_observer.py`、`scripts/Install-GoogleObserver.ps1`、`scripts/Uninstall-GoogleObserver.ps1`、`tests/test_google_observer.py`、`docs/google-observer.md`。
+- `scripts/Fetch-Binaries.ps1`：按 `manifest.json` 的哈希取回 mihomo 与服务二进制。
+- `PROJECT_STATUS.md`：项目状态的动态入口，含证据列与更新规则。
 - `scripts/Update-Checksums.ps1` 重新生成 `SHA256SUMS.txt`。
 - `.github/workflows/tests.yml` 在 windows-latest 上运行单元测试。
 - `AGENTS.md` 记录真源、私有数据与线上改动的约定。
@@ -17,6 +23,7 @@
 - 工作区整理为正式仓库：`src/` 为唯一真源，私有与本机内容移入被忽略的 `_local/`，发布说明移入 `docs/releases/`，配置样例移入 `assets/`（提交 86d9d91）。
 - `README.md` 重写为面向维护的说明；维护文档统一为简体中文，历史发布说明保持原文。
 - 直接路由新增 `DIRECT_DOMAINS`（`maitokens.top`、`maitokens.com`），使用国内 DoH 解析并排除 fake-IP。
+- `bin/mihomo.exe` 与 `bin/FlClashMihomoService.exe`（合计约 68 MB）移出工作区与 Git 历史，改为按 `manifest.json` 哈希取回；历史已重写，因此 `v1.0.0` 之前的提交哈希全部变化，标签 `v1.0.0` 指向重写后的提交（仓库打包体积从 25 MiB 量级降到 0.2 MiB 量级）。
 
 ### 修复
 

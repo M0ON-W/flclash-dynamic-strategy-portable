@@ -15,7 +15,8 @@
 | `docs/` | 架构、安装迁移、项目总结、观察器说明、历史发布说明 |
 | `egern/` | 手机端 Egern 三组策略移植、模块与校验脚本 |
 | `assets/` | 早期产出的配置样例（Shadowrocket 三组扩展、覆写脚本预览） |
-| `bin/`, `licenses/` | 可移植包自带的 mihomo 与 WinSW 二进制及其许可证 |
+| `bin/` | 可移植包二进制目录，`.exe` 不入库，用 `scripts/Fetch-Binaries.ps1` 取回并校验哈希 |
+| `licenses/` | mihomo（GPL-3.0）与 WinSW（MIT）许可证 |
 | `_local/` | 私有区，已被 .gitignore 忽略：运行备份、私有 profile、历史发布包、二进制暂存、临时脚本 |
 
 `_local/` 的存在是为了让「公开内容」和「本机私有内容」在同一条路径下互不干扰。发布或推送前确认 `git status --short` 中不出现 `_local/`。
@@ -81,7 +82,17 @@ python -m pytest tests -q
 
 ## 可移植包与发布
 
-`manifest.json` 记录包版本、已验证的 FlClash/Mihomo/WinSW/Python/PyYAML 版本与二进制 SHA-256，`SHA256SUMS.txt` 给出文件清单校验值。在目标机器上以管理员身份安装与验收：
+`manifest.json` 记录包版本、已验证的 FlClash/Mihomo/WinSW/Python/PyYAML 版本与二进制 SHA-256，`SHA256SUMS.txt` 给出文件清单校验值。
+
+两个二进制（约 68 MB）已从仓库及其历史中移除，克隆或下载 ZIP 后先取回并校验：
+
+```powershell
+.\scripts\Fetch-Binaries.ps1
+```
+
+脚本默认从 MetaCubeX 官方发行包下载 mihomo，并从本机已安装的 FlClash 服务目录复制 `FlClashMihomoService.exe`（即改名后的 WinSW），两者都必须与 `manifest.json` 中的哈希一致；离线环境可用 `-MihomoZip` 指定本地发行包、用 `-ServiceExePath` 指定来源文件。详见 [bin/README.md](bin/README.md)。
+
+准备完成后，在目标机器上以管理员身份安装与验收：
 
 ```powershell
 .\scripts\Install.ps1 -ReplaceExistingOverrides

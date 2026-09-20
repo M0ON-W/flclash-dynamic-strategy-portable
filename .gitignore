@@ -10,3 +10,6 @@ _local/
 # 构建产物
 dist/
 *.zip
+
+# 可移植包二进制不入库，用 scripts\Fetch-Binaries.ps1 取回并校验哈希
+bin/*.exe

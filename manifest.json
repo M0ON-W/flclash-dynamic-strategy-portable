@@ -1,6 +1,6 @@
 {
   "package": "FlClash-Dynamic-Strategy-Portable",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "target": "Windows 10/11 x64",
   "tested_with": {
     "flclash": "0.8.96+2026081701",
@@ -16,6 +16,13 @@
   "stable_minimum_samples": 216,
   "gemini_candidate_discovery": "multi-endpoint-consecutive-validation",
   "contains_subscription_data": false,
+  "binaries_in_repository": false,
+  "mihomo_release": {
+    "version": "1.19.30",
+    "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.30/mihomo-windows-amd64-v1.19.30.zip",
+    "asset": "mihomo-windows-amd64.exe"
+  },
+  "service_binary_source": "本机已安装的 FlClash 服务目录（默认 %ProgramData%\\FlClashMihomoService\\FlClashMihomoService.exe），或从历史发布包复制后校验哈希",
   "binary_sha256": {
     "bin/mihomo.exe": "F55B3028D9160BEB9044F21B05DD7405B46524614A19642D6291492F5F985761",
     "bin/FlClashMihomoService.exe": "05B82D46AD331CC16BDC00DE5C6332C1EF818DF8CEEFCD49C726553209B3A0DA"
