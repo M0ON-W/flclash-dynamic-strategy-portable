@@ -64,8 +64,29 @@ GROUP_STABLE = "稳净"
 GROUP_FAST = "极速"
 GROUP_GOOGLE_AI = "__谷歌AI"
 GROUP_OPENAI = "__OpenAI"
+GROUP_NETFLIX = "__Netflix"
 MANAGED_GROUPS = [GROUP_CLEAN, GROUP_STABLE, GROUP_FAST]
-RUNTIME_GROUPS = MANAGED_GROUPS + [GROUP_GOOGLE_AI, GROUP_OPENAI]
+NETFLIX_PIN_PATTERNS = [
+    r"美国US.*A220.*台湾隧道",
+    r"美国US.*36",
+    r"美国US.*A125.*沪港",
+    r"美国US.*A125.*台湾隧道",
+    r"美国US.*A220.*沪港",
+]
+NETFLIX_GAP_SECONDS = 120
+NETFLIX_PIN_COOLDOWN_SECONDS = 4 * 3600
+NETFLIX_ONLINE_RATE_7D = 0.90
+NETFLIX_ONLINE_RATE_24H = 0.80
+NETFLIX_MAX_LATENCY_MS = 1500.0
+NETFLIX_BETTER_MARGIN = 0.30
+NETFLIX_DOMAIN_SUFFIXES = (
+    "netflix.com",
+    "nflxvideo.net",
+    "nflximg.net",
+    "nflxso.net",
+    "nflxext.com",
+)
+RUNTIME_GROUPS = MANAGED_GROUPS + [GROUP_GOOGLE_AI, GROUP_OPENAI, GROUP_NETFLIX]
 REQUIRED_RUNTIME_GROUPS = MANAGED_GROUPS
 
 BILIBILI_DOMAINS = (
@@ -84,6 +105,12 @@ BILIBILI_DIRECT_DOH = (
     "https://223.6.6.6/dns-query",
 )
 
+# Service domains that must bypass the proxy and use domestic DNS resolution.
+DIRECT_DOMAINS = (
+    "maitokens.top",
+    "maitokens.com",
+)
+
 OPENAI_DOMAIN_SUFFIXES = (
     "openai.com",
     "chatgpt.com",
@@ -100,12 +127,15 @@ GOOGLE_DOMAIN_SUFFIXES = (
     "ytimg.com",
 )
 
-DEFAULT_GOOGLE_BLOCKED_MEMBERS: tuple[str, ...] = ()
+DEFAULT_GOOGLE_BLOCKED_MEMBERS = (
+    "7. IEPL·台湾专线B·TW1·均衡·沪港IEPL·600M",
+)
 
 RULESET_OPENAI = "__managed-openai"
 RULESET_GOOGLE_GEMINI = "__managed-google-gemini"
 RULESET_AI_NON_CN = "__managed-category-ai-non-cn"
 RULESET_GOOGLE = "__managed-google"
+RULESET_NETFLIX = "__managed-netflix"
 RULESET_MICROSOFT_CN = "__managed-microsoft-cn"
 RULESET_MICROSOFT = "__managed-microsoft"
 RULESET_APPLE_CN = "__managed-apple-cn"
@@ -118,6 +148,7 @@ MANAGED_RULESETS = {
     RULESET_GOOGLE_GEMINI: ("geosite/google-gemini.mrs", "domain"),
     RULESET_AI_NON_CN: ("geosite/category-ai-!cn.mrs", "domain"),
     RULESET_GOOGLE: ("geosite/google.mrs", "domain"),
+    RULESET_NETFLIX: ("geosite/netflix.mrs", "domain"),
     RULESET_MICROSOFT_CN: ("geosite/microsoft@cn.mrs", "domain"),
     RULESET_MICROSOFT: ("geosite/microsoft.mrs", "domain"),
     RULESET_APPLE_CN: ("geosite/apple-cn.mrs", "domain"),
@@ -279,7 +310,11 @@ def group_config(name: str, members: list[str]) -> dict:
     proxies = members or ["REJECT"]
     common = {
         "name": name,
-        "type": "fallback" if name in {GROUP_FAST, GROUP_GOOGLE_AI, GROUP_OPENAI} else "url-test",
+        "type": "select"
+        if name == GROUP_NETFLIX
+        else "fallback"
+        if name in {GROUP_FAST, GROUP_GOOGLE_AI, GROUP_OPENAI}
+        else "url-test",
         "proxies": proxies,
         "interval": 600,
         "lazy": False,
@@ -318,6 +353,14 @@ def group_config(name: str, members: list[str]) -> dict:
                 "hidden": True,
             }
         )
+    elif name == GROUP_NETFLIX:
+        common.update(
+            {
+                "url": "https://www.netflix.com/",
+                "expected-status": "200",
+                "hidden": True,
+            }
+        )
     else:
         common.update(
             {
@@ -347,6 +390,7 @@ def managed_rules(default_group: str) -> list[str]:
     return [
         *STORE_DIRECT_RULES,
         *(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in BILIBILI_DOMAINS),
+        *(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in DIRECT_DOMAINS),
         "DOMAIN-SUFFIX,local,DIRECT",
         "DOMAIN-SUFFIX,lan,DIRECT",
         "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
@@ -368,6 +412,12 @@ def managed_rules(default_group: str) -> list[str]:
         f"RULE-SET,{RULESET_GOOGLE_GEMINI},{GROUP_GOOGLE_AI}",
         f"RULE-SET,{RULESET_AI_NON_CN},{GROUP_CLEAN}",
         f"RULE-SET,{RULESET_GOOGLE},{GROUP_GOOGLE_AI}",
+        f"DOMAIN-SUFFIX,netflix.com,{GROUP_NETFLIX}",
+        f"DOMAIN-SUFFIX,nflxvideo.net,{GROUP_NETFLIX}",
+        f"DOMAIN-SUFFIX,nflximg.net,{GROUP_NETFLIX}",
+        f"DOMAIN-SUFFIX,nflxso.net,{GROUP_NETFLIX}",
+        f"DOMAIN-SUFFIX,nflxext.com,{GROUP_NETFLIX}",
+        f"RULE-SET,{RULESET_NETFLIX},{GROUP_NETFLIX}",
         f"RULE-SET,{RULESET_MICROSOFT_CN},DIRECT",
         f"RULE-SET,{RULESET_APPLE_CN},DIRECT",
         "DOMAIN-SUFFIX,apple.com.cn,DIRECT",
@@ -403,6 +453,7 @@ def strict_dns(dns_proxy: str | None = None) -> dict:
             "localhost",
             "localhost.*",
             *(f"+.{domain}" for domain in BILIBILI_DOMAINS),
+            *(f"+.{domain}" for domain in DIRECT_DOMAINS),
         ],
         "nameserver": [
             f"https://1.1.1.1/dns-query{route}",
@@ -415,6 +466,7 @@ def strict_dns(dns_proxy: str | None = None) -> dict:
         "fallback": [],
         "nameserver-policy": {
             **{f"+.{domain}": list(BILIBILI_DIRECT_DOH) for domain in BILIBILI_DOMAINS},
+            **{f"+.{domain}": list(domestic_doh) for domain in DIRECT_DOMAINS},
             f"rule-set:{RULESET_CN}": domestic_doh,
             f"rule-set:{RULESET_MICROSOFT_CN}": domestic_doh,
             f"rule-set:{RULESET_APPLE_CN}": domestic_doh,
@@ -447,7 +499,6 @@ def build_effective_config(raw: dict, state: dict, tun_enable: bool = True) -> d
     google_ai = sanitize_members(
         state.get("gemini_members")
         or last_known_good.get("gemini_members")
-        or state.get("gemini_verified_members")
         or [],
         allowed,
     )
@@ -458,14 +509,21 @@ def build_effective_config(raw: dict, state: dict, tun_enable: bool = True) -> d
         or [],
         allowed,
     )
+    netflix = sanitize_members(
+        state.get("netflix_members")
+        or last_known_good.get("netflix_members")
+        or [],
+        allowed,
+    )
     if not fast:
         fast = names[:20]
     if not stable and state.get("stable_provisional"):
         stable = clean
     # Dedicated AI pools are optional. A temporary empty result must not turn a
     # valid general proxy configuration into REJECT or block scheduled updates.
-    google_ai = google_ai or fast
+    google_ai = google_ai or clean or stable or fast
     openai = openai or fast
+    netflix = netflix or clean or stable or fast
 
     config["proxy-groups"] = [
         group_config(GROUP_CLEAN, clean),
@@ -473,6 +531,7 @@ def build_effective_config(raw: dict, state: dict, tun_enable: bool = True) -> d
         group_config(GROUP_FAST, fast),
         group_config(GROUP_GOOGLE_AI, google_ai),
         group_config(GROUP_OPENAI, openai),
+        group_config(GROUP_NETFLIX, netflix),
     ]
     existing_rule_providers = config.get("rule-providers")
     rule_providers = (
@@ -590,13 +649,17 @@ def generate_override_script(state: dict) -> str:
     google_ai_members = (
         state.get("gemini_members")
         or last_known_good.get("gemini_members")
-        or state.get("gemini_verified_members")
         or []
     )
     openai_members = (
         state.get("openai_members")
         or last_known_good.get("openai_members")
         or state.get("openai_verified_members")
+        or []
+    )
+    netflix_members = (
+        state.get("netflix_members")
+        or last_known_good.get("netflix_members")
         or []
     )
     clean_members = memberships.get(GROUP_CLEAN) or last_memberships.get(GROUP_CLEAN) or []
@@ -611,6 +674,7 @@ def generate_override_script(state: dict) -> str:
     )
     google_ai = json.dumps(google_ai_members, ensure_ascii=False)
     openai = json.dumps(openai_members, ensure_ascii=False)
+    netflix = json.dumps(netflix_members, ensure_ascii=False)
     default_group = GROUP_STABLE if memberships.get(GROUP_STABLE) and not state.get("stable_provisional") else GROUP_FAST
     rules = json.dumps(managed_rules(default_group), ensure_ascii=False)
     rule_providers = json.dumps(managed_rule_providers(), ensure_ascii=False)
@@ -624,6 +688,7 @@ function main(config) {{
   var fastMembers = {fast};
   var googleAiMembers = {google_ai};
   var openaiMembers = {openai};
+  var netflixMembers = {netflix};
   var proxyNames = [];
   var rawProxies = Array.isArray(config.proxies) ? config.proxies : [];
   var infoPattern = /(剩余|流量|套餐|官网|订阅|到期|重置|客服|公告|更新|实时负载|使用说明|traffic|expire|website|reset|official|subscribe)/i;
@@ -643,9 +708,11 @@ function main(config) {{
   fastMembers = validMembers(fastMembers);
   googleAiMembers = validMembers(googleAiMembers);
   openaiMembers = validMembers(openaiMembers);
+  netflixMembers = validMembers(netflixMembers);
   if (!fastMembers.length) fastMembers = proxyNames.slice(0, 20);
-  if (!googleAiMembers.length) googleAiMembers = fastMembers.slice();
+  if (!googleAiMembers.length) googleAiMembers = cleanMembers.length ? cleanMembers.slice() : (stableMembers.length ? stableMembers.slice() : fastMembers.slice());
   if (!openaiMembers.length) openaiMembers = fastMembers.slice();
+  if (!netflixMembers.length) netflixMembers = cleanMembers.length ? cleanMembers.slice() : (stableMembers.length ? stableMembers.slice() : fastMembers.slice());
   function membersOrReject(items) {{ return items.length ? items : ['REJECT']; }}
   var managedRuleProviders = {rule_providers};
   var existingRuleProviders = config['rule-providers'];
@@ -657,7 +724,8 @@ function main(config) {{
     {{name:'{GROUP_STABLE}',type:'url-test',proxies:membersOrReject(stableMembers),url:'https://www.gstatic.com/generate_204','expected-status':'204',interval:600,lazy:false,timeout:8000,'max-failed-times':2,tolerance:30,hidden:false}},
     {{name:'{GROUP_FAST}',type:'fallback',proxies:membersOrReject(fastMembers),url:'https://speed.cloudflare.com/__down?bytes=131072','expected-status':'200',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:false}},
     {{name:'{GROUP_GOOGLE_AI}',type:'fallback',proxies:membersOrReject(googleAiMembers),url:'https://www.google.com/?hl=en','expected-status':'200',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:true}},
-    {{name:'{GROUP_OPENAI}',type:'fallback',proxies:membersOrReject(openaiMembers),url:'https://api.openai.com/v1/models','expected-status':'401',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:true}}
+    {{name:'{GROUP_OPENAI}',type:'fallback',proxies:membersOrReject(openaiMembers),url:'https://api.openai.com/v1/models','expected-status':'401',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:true}},
+    {{name:'{GROUP_NETFLIX}',type:'select',proxies:membersOrReject(netflixMembers),url:'https://www.netflix.com/','expected-status':'200',interval:600,lazy:false,timeout:8000,'max-failed-times':2,hidden:true}}
   ];
   config.rules = {rules};
   config['allow-lan'] = false;
@@ -1305,6 +1373,152 @@ def classify(
     state["last_observations"] = observations
 
 
+def netflix_pool_candidates(state: dict, names: list[str]) -> list[str]:
+    histories = state.get("history") or {}
+    now = int(time.time())
+    matched_names = []
+    for pattern in NETFLIX_PIN_PATTERNS:
+        for name in names:
+            if re.search(pattern, name) and name not in matched_names:
+                matched_names.append(name)
+                break
+    pool = []
+    for name in matched_names:
+        history = histories.get(name) or []
+        if not history:
+            continue
+        week = [item for item in history if now - int(item.get("time", 0)) < 7 * 86400]
+        if not week:
+            continue
+        if not any(item.get("online") for item in week):
+            continue
+        pool.append(name)
+    return pool
+
+
+def netflix_node_health(state: dict, name: str, now: int | None = None) -> dict:
+    now = int(time.time()) if now is None else now
+    histories = state.get("history") or {}
+    history = histories.get(name) or []
+    week = [item for item in history if now - int(item.get("time", 0)) < 7 * 86400]
+    day = [item for item in history if now - int(item.get("time", 0)) < 86400]
+    rate_7d = (
+        sum(1 for item in week if item.get("online")) / len(week) if week else 0.0
+    )
+    rate_24h = (
+        sum(1 for item in day if item.get("online")) / len(day) if day else 0.0
+    )
+    latencies = [
+        item.get("latency_ms")
+        for item in week
+        if item.get("online") and item.get("latency_ms")
+    ]
+    return {
+        "rate_7d": rate_7d,
+        "rate_24h": rate_24h,
+        "latency_ms": median(latencies) if latencies else None,
+    }
+
+
+def netflix_gap_active(state: dict, now: int | None = None) -> bool:
+    now = int(time.time()) if now is None else now
+    active = False
+    for request_func in (controller_request, service_controller_request):
+        try:
+            if controller_has_domain_connections(request_func, NETFLIX_DOMAIN_SUFFIXES):
+                active = True
+        except Exception:
+            pass
+    if active:
+        state["netflix_last_conn_seen"] = now
+        return False
+    last_seen = int(state.get("netflix_last_conn_seen") or 0)
+    return now - last_seen >= NETFLIX_GAP_SECONDS
+
+
+def netflix_repin(state: dict, names: list[str], now: int | None = None) -> dict:
+    now = int(time.time()) if now is None else now
+    pool = netflix_pool_candidates(state, names)
+    if not pool:
+        return {"action": "skip", "reason": "no pool candidates"}
+    current = state.get("netflix_selected")
+    if current not in pool:
+        current = None
+    if not netflix_gap_active(state, now):
+        return {"action": "skip", "reason": "netflix connection active or gap too short"}
+    health = {name: netflix_node_health(state, name, now) for name in pool}
+    qualified = [
+        name
+        for name in pool
+        if health[name]["rate_7d"] >= NETFLIX_ONLINE_RATE_7D
+        and health[name]["rate_24h"] >= NETFLIX_ONLINE_RATE_24H
+    ]
+    probes = {}
+    for name in qualified:
+        try:
+            index = names.index(name)
+        except ValueError:
+            continue
+        probes[name] = probe_node(index, name)
+    qualified = [
+        name
+        for name in qualified
+        if bool(probes.get(name, {}).get("online"))
+        and (probes[name].get("latency_ms") or 999999) < NETFLIX_MAX_LATENCY_MS
+    ]
+    if not qualified:
+        return {"action": "hold", "reason": "no qualified pool member", "pool": pool}
+    qualified.sort(
+        key=lambda name: (
+            -health[name]["rate_7d"],
+            probes[name].get("latency_ms") or 999999,
+        )
+    )
+    best = qualified[0]
+    current_health = health.get(current) if current else None
+    current_failed = bool(current) and (
+        current not in qualified
+        or not bool(probes.get(current, {}).get("online"))
+    )
+    better = bool(current_health) and health[best]["rate_7d"] - current_health["rate_7d"] >= NETFLIX_BETTER_MARGIN
+    if current and not current_failed and not better:
+        return {"action": "keep", "selected": current}
+    last_pin = int(state.get("netflix_last_pin_at") or 0)
+    if now - last_pin < NETFLIX_PIN_COOLDOWN_SECONDS:
+        return {"action": "cooldown", "selected": current, "best": best}
+    target = best
+    applied = []
+    for request_func in (controller_request, service_controller_request):
+        try:
+            request_func(
+                f"/proxies/{urllib.parse.quote(GROUP_NETFLIX)}",
+                method="PUT",
+                payload={"name": target},
+                timeout=10,
+            )
+            applied.append(True)
+        except Exception:
+            applied.append(False)
+    if not any(applied):
+        return {"action": "error", "reason": "controller switch failed", "target": target}
+    state["netflix_members"] = list(pool)
+    state["netflix_selected"] = target
+    state["netflix_last_pin_at"] = now
+    log(
+        f"netflix repin: {current} -> {target} "
+        f"(current_failed={current_failed}, better={better}, "
+        f"rate7d={health[target]['rate_7d']:.2f}, "
+        f"latency={probes[target].get('latency_ms')})"
+    )
+    return {
+        "action": "switch",
+        "from": current,
+        "to": target,
+        "current_failed": current_failed,
+        "better": better,
+    }
+
+
 def choose_dns_proxy(state: dict, names: list[str]) -> str | None:
     allowed = set(names)
     for name in state.get("gemini_members") or []:
@@ -1332,6 +1546,11 @@ def refresh_gemini_members(
         state.get("gemini_verified_members") or state.get("gemini_members") or [],
         allowed,
     )
+    strict_candidates = sanitize_members(
+        (state.get("memberships") or {}).get(GROUP_CLEAN) or [],
+        allowed,
+    )
+    verified = (verified + [name for name in strict_candidates if name not in verified])[:6]
     verified = [name for name in verified if name not in blocked]
     if not verified:
         return
@@ -1497,6 +1716,7 @@ def remember_last_known_good(state: dict, names: list[str]) -> bool:
         },
         "gemini_members": sanitize_members(state.get("gemini_members") or [], allowed),
         "openai_members": sanitize_members(state.get("openai_members") or [], allowed),
+        "netflix_members": sanitize_members(state.get("netflix_members") or [], allowed),
         "dns_proxy": state.get("dns_proxy") if state.get("dns_proxy") in allowed else None,
         "saved_at": int(time.time()),
     }
@@ -1518,6 +1738,7 @@ def restore_last_known_good(state: dict, names: list[str]) -> bool:
     fast = sanitize_members(memberships.get(GROUP_FAST) or [], allowed)
     google_ai = sanitize_members(snapshot.get("gemini_members") or [], allowed)
     openai = sanitize_members(snapshot.get("openai_members") or [], allowed)
+    netflix = sanitize_members(snapshot.get("netflix_members") or [], allowed)
     if not all((clean, stable, fast)):
         return False
     state["memberships"] = {
@@ -1527,6 +1748,7 @@ def restore_last_known_good(state: dict, names: list[str]) -> bool:
     }
     state["gemini_members"] = google_ai
     state["openai_members"] = openai
+    state["netflix_members"] = netflix
     dns_proxy = snapshot.get("dns_proxy")
     if dns_proxy in allowed:
         state["dns_proxy"] = dns_proxy
@@ -1686,6 +1908,8 @@ def run_once(force_scan: bool = False) -> dict:
     order = {name: index for index, name in enumerate(names)}
     observations.sort(key=lambda item: order.get(item["name"], 999999))
     state, quality = evaluate_scan(state, observations, names, LISTENER_PORT_BASE)
+    repin = netflix_repin(state, names)
+    status["netflix_repin"] = repin
     write_json(STATE_FILE, state)
 
     if not quality["accepted"]:
@@ -1942,17 +2166,20 @@ def safe_apply() -> dict:
             raise RuntimeError(
                 f"original node failed after candidate reload: {original_checks}"
             )
-        for group in [GROUP_FAST, GROUP_CLEAN, GROUP_STABLE, GROUP_GOOGLE_AI, GROUP_OPENAI]:
+        for group in [GROUP_FAST, GROUP_CLEAN, GROUP_STABLE, GROUP_GOOGLE_AI, GROUP_OPENAI, GROUP_NETFLIX]:
             if group == GROUP_GOOGLE_AI:
                 members = state.get("gemini_members")
             elif group == GROUP_OPENAI:
                 members = state.get("openai_members")
+            elif group == GROUP_NETFLIX:
+                members = state.get("netflix_members")
             else:
                 members = (state.get("memberships") or {}).get(group)
             members = sanitize_members(list(members or []), set(names))
-            dedicated_pool_fallback = group in {GROUP_GOOGLE_AI, GROUP_OPENAI} and not members
+            dedicated_pool_fallback = group in {GROUP_GOOGLE_AI, GROUP_OPENAI, GROUP_NETFLIX} and not members
             if dedicated_pool_fallback:
-                members = (state.get("memberships") or {}).get(GROUP_FAST)
+                fallback_group = GROUP_CLEAN if group in {GROUP_GOOGLE_AI, GROUP_NETFLIX} else GROUP_FAST
+                members = (state.get("memberships") or {}).get(fallback_group)
             if not members:
                 raise RuntimeError(f"group {group} has no configured members")
             member_checks = {}
@@ -2183,8 +2410,13 @@ def scheduled_safe() -> dict:
             "scan_performed": False,
             "bindings_preserved": True,
             "groups_ready": True,
+            "netflix_repin": netflix_repin(
+                state,
+                [str(proxy["name"]) for proxy in candidate_proxies(load_profile(current_profile_id()))],
+            ),
             "stable_progress": stable_progress(state),
         }
+        write_json(STATE_FILE, state)
         log("scheduled check: groups present; full scan not yet due")
         return finish_scheduled(status, state)
 
