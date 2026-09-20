@@ -95,6 +95,7 @@ python -m pytest tests -q
 
 | 文档 | 内容 |
 | --- | --- |
+| [PROJECT_STATUS.md](PROJECT_STATUS.md) | 当前状态快照：仓库、本机运行、观察器与待办 |
 | [docs/技術架構.md](docs/技術架構.md) | 组结构、DNS、规则、双控制器与代码布局 |
 | [docs/安裝與遷移.md](docs/安裝與遷移.md) | 在新机器上安装、迁移与验收步骤 |
 | [docs/項目總結.md](docs/項目總結.md) | 项目背景与实现历程 |
@@ -109,4 +110,3 @@ python -m pytest tests -q
 ## 第三方
 
 `licenses/` 收录 mihomo（GPL-3.0）与 WinSW（MIT）许可证；`egern/modules/` 下各模块按自身 LICENSE 分发，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
-
