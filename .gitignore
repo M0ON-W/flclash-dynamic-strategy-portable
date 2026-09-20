@@ -1,4 +1,12 @@
 __pycache__/
 *.py[cod]
+.pytest_cache/
 egern/audit-report.md
 egern/upstream-candidates/
+
+# 本机私有区：订阅配置、运行备份、二进制、临时脚本，永不提交
+_local/
+
+# 构建产物
+dist/
+*.zip

@@ -1,95 +1,112 @@
-# FlClash 三組動態策略可移植包
+# FlClash 动态策略系统
 
-[中文](#中文簡介) · [English](#english-introduction) · [English README](README_EN.md)
+在 Windows 上为 FlClash 自动维护 `净选`、`稳净`、`极速` 三个中文策略组，并额外维护隐藏的 Google/Gemini、OpenAI、Netflix 专用出口池；配合独立 Mihomo TUN 服务、防泄漏 DNS 与 20 分钟静默排程，安装完成后不依赖 Codex 运行。
 
-## 中文簡介
+本目录就是该项目的 Git 仓库（origin: `https://github.com/M0ON-W/flclash-dynamic-strategy-portable`），既包含可移植安装包的内容，也包含本机实时运行的管理器、观察器与运维文档。
 
-一套適用於 Windows FlClash 的可移植動態策略系統：自動建立 `净选`、`稳净`、`极速`三個中文策略組，為 Google/Gemini 維持經地區可用性檢測的專用出口池，並透過獨立 Mihomo TUN、DNS 防洩漏及 20 分鐘靜默排程持續更新。安裝完成後不依賴 Codex。
+## 目录结构
 
-## English Introduction
+| 路径 | 作用 |
+| --- | --- |
+| `src/strategy_manager.py` | 主程序。唯一真源，本机运行的版本由它部署而来 |
+| `src/google_observer.py` | Google 旁路只读观察器，导入 `strategy_manager` 复用常量与控制器调用 |
+| `tests/` | 单元测试，`conftest.py` 负责把 `src/` 加入导入路径 |
+| `scripts/` | 安装、验收、回滚、运行时校验，以及 Google 观察器的安装/卸载脚本 |
+| `docs/` | 架构、安装迁移、项目总结、观察器说明、历史发布说明 |
+| `egern/` | 手机端 Egern 三组策略移植、模块与校验脚本 |
+| `assets/` | 早期产出的配置样例（Shadowrocket 三组扩展、覆写脚本预览） |
+| `bin/`, `licenses/` | 可移植包自带的 mihomo 与 WinSW 二进制及其许可证 |
+| `_local/` | 私有区，已被 .gitignore 忽略：运行备份、私有 profile、历史发布包、二进制暂存、临时脚本 |
 
-A portable dynamic-routing system for FlClash on Windows. It automatically maintains three Chinese policy groups—`净选` (clean), `稳净` (stable and clean), and `极速` (fast)—plus a region-checked Google/Gemini egress pool. An independent Mihomo TUN service, DNS leak controls, rolling history, safe rollback, and a silent 20-minute scheduler keep the system working without Codex after installation.
+`_local/` 的存在是为了让「公开内容」和「本机私有内容」在同一条路径下互不干扰。发布或推送前确认 `git status --short` 中不出现 `_local/`。
 
-## 能復現的功能
+## 本机运行的系统
 
-- 三個中文可見策略組：`净选`、`稳净`、`极速`。
-- 隱藏的專用動態組 `__谷歌AI` 與 `__OpenAI`；每輪自動排除返回「所在地區不支援」頁面的節點，並在 OpenAI 連接活躍時延後策略熱加載保護連線。
-- 採用 MetaCubeX MRS 原生規則提供器實現精細分流：OpenAI 專用、Google/Gemini 潔淨分流、非 CN AI 淨選、微軟/蘋果中國區直連、國際服務極速、國內媒體與網址 (微信/Bilibili/淘寶等) 直連。
-- 規則感知 DNS 分流：國內直連網域使用直連 AliDNS DoH 取得本地 CDN，外部 DoH 經具備故障切換的 `极速`組發送，且不使用系統 DNS 上游。
-- 每 20 分鐘並行檢測節點可用性、服務相容性、延遲、短程吞吐與出口風險；策略組自身每 10 分鐘健康檢查。
-- Google/Gemini 候選池從目標電腦自己的訂閱自動建立，不依賴本機預存節點；候選節點每輪依序下載 1 MiB 測速，避免多條線路同時測速互相爭搶帶寬。
-- `稳净`累積 7 天滾動歷史，至少 3 天、216 個樣本後才可成為成熟樣本；成熟前自動標記為暫定。
-- DNS 使用 fake-IP、DoH、規則跟隨、IPv6 關閉、TUN DNS 劫持，且不使用系統 DNS 作為上游解析來源。
-- 哔哩哔哩主站、API、CNAME 与视频 CDN 域名固定直连并排除 fake-IP；独立 TUN 固定 MTU 1400，安装验收同时检查 DNS 路径、代理入口和 TUN 访问。
-- 獨立 Mihomo 以 LocalSystem Windows 服務自動啟動；FlClash 自身的 TUN 保持關閉，避免雙 TUN。
-- FlClash 關閉時，獨立服務仍可維持 TUN，並可供背景管理器繼續檢測。
-- 策略腳本綁定 FlClash 配置；重新匯入或更新訂閱後，排程會重新建立策略組。
+| 组件 | 位置 |
+| --- | --- |
+| 部署的管理器 | `%APPDATA%\com.follow\clash\managed\strategy_manager.py` |
+| 观察器 | `%APPDATA%\com.follow\clash\managed\google-observer\google_observer.py` |
+| 状态与日志 | `managed\state.json`、`managed\latest_status.json`、`managed\manager.log` |
+| 定时任务 | `FlClash-Strategy-20min`（每 20 分钟执行 `--scheduled`）、`FlClash-Google-Observer-20min` |
+| 控制器 | FlClash `127.0.0.1:9090`（代理 7890）、独立 Mihomo `127.0.0.1:19090`（代理 17890） |
 
-## 不能被軟體保證的事項
+工作约定：FlClash 自身 TUN 保持关闭，TUN 由独立 Mihomo 服务提供，避免双 TUN；`pending_runtime_apply` 之类的状态字段只代表待应用，不能当作已生效。
 
-節點的出口信譽、服務風控結果、延遲與帶寬會隨供應商、時間和網路環境改變。因此，本項目能完整復現的是「檢測、累積、排序和自動切換機制」，不能讓另一台電腦得到完全相同的節點排名，也不能對任何節點作永久、絕對潔淨的保證。`净选`表示當前檢測條件下最嚴格通過的節點。
+## 常用命令
 
-## 前置條件
-
-- Windows 10/11 x64。
-- 已安裝 FlClash，已匯入並選中一份含有內聯 `proxies` 節點的配置。
-- FlClash 安裝時保持運行，核心控制端口為本機 `127.0.0.1:9090`。
-- Python 3.10 或更高版本，且安裝中允許取得 PyYAML 6.0.3。
-- 以系統管理員身分執行安裝腳本。
-- 已驗證版本：FlClash `0.8.96+2026081701`、Mihomo `1.19.30`、WinSW `2.12.0`。
-
-若 FlClash 資料庫結構不相容、配置只有 `proxy-providers` 而沒有內聯節點，安裝前檢查會拒絕繼續。
-
-## 安裝
-
-1. 解壓 ZIP，不要直接在壓縮檔內執行。
-2. 啟動 FlClash，選中要使用的訂閱配置；保持 FlClash 自身「虛擬網卡/TUN」關閉。
-3. 以系統管理員身分開啟 PowerShell，進入解壓目錄。
-4. 執行：
+部署（或更新）本机运行的管理器，脚本会先把自身复制到 `managed\` 再重建脚本绑定：
 
 ```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\Install.ps1 -ReplaceExistingOverrides
+python src\strategy_manager.py --install
 ```
 
-`-ReplaceExistingOverrides`表示同意清除 FlClash 現有的腳本覆寫、規則覆寫和策略組覆寫。本機配置會先備份到：
+其余入口参数：
 
 ```text
-%APPDATA%\com.follow\clash\managed\backups\portable-時間戳
+--scheduled            排程一次静默运行（由定时任务调用）
+--force-scan           强制重新全量检测
+--safe-apply           在安全窗口内应用策略
+--scan-existing        只扫描现有节点
+--reclassify-existing  按新规则重新分类
+--service-tun-on       打开独立 Mihomo TUN
+--service-tun-off      关闭独立 Mihomo TUN
 ```
 
-安裝期間不會關閉 FlClash。首次全量檢測可能需要數分鐘。
-
-## 驗收
-
-安裝器會自動驗收，也可隨時手動執行：
+Google 观察器（需管理员 PowerShell，只读、不切换真实流量）：
 
 ```powershell
+.\scripts\Install-GoogleObserver.ps1 -StartNow
+.\scripts\Uninstall-GoogleObserver.ps1            # 保留观察数据
+.\scripts\Uninstall-GoogleObserver.ps1 -RemoveObservationData
+```
+
+## 开发与测试
+
+```powershell
+pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest tests -q
+```
+
+修改代码时先把 `src/strategy_manager.py` 改好并跑通测试，再执行 `--install` 部署到本机；不要直接编辑 `managed\` 下的副本，那是产物。
+
+## 策略组与专用出口
+
+- `净选`：当前检测条件下最严格通过的一组出口。
+- `稳净`：累积 7 天滚动历史，至少 3 天且 216 个样本后才算成熟样本，成熟前标记为暂定。
+- `极速`：按延迟与短程吞吐排序的快速出口。
+- `__谷歌AI`、`__OpenAI`：隐藏专用池，逐轮排除返回地区不支持页面的节点。
+- `__Netflix`：只保留匹配固定美国节点模式的成员，播放出现空档时按 7 天/24 小时在线率、探测延迟和 4 小时冷却重新钉选出口。
+
+分流依赖 `__managed-*` 系列 MRS 规则集（来源 MetaCubeX meta-rules-dat），DNS 使用 fake-IP + DoH + 规则跟随，且不使用系统 DNS 上游；Bilibili 与 `maitokens.top` / `maitokens.com` 走直连并使用国内 DoH 解析。
+
+## 可移植包与发布
+
+`manifest.json` 记录包版本、已验证的 FlClash/Mihomo/WinSW/Python/PyYAML 版本与二进制 SHA-256，`SHA256SUMS.txt` 给出文件清单校验值。在目标机器上以管理员身份安装与验收：
+
+```powershell
+.\scripts\Install.ps1 -ReplaceExistingOverrides
 .\scripts\Verify.ps1
+.\scripts\Restore-Previous.ps1 -ConfirmRestore   # 回滚（会短暂断网）
 ```
 
-驗收項目包括策略組、規則落點、Google 專用路由、7890 代理入口、獨立服務、TUN、虛擬網卡和靜默排程。
+历史发布说明见 `docs/releases/`，变更记录见 `CHANGELOG.md`。
 
-## 日常使用
+## 文档索引
 
-- FlClash 使用規則模式。
-- FlClash 自身「虛擬網卡/TUN」保持關閉。
-- 不要手動停止 `FlClashMihomoService`。
-- 正常更新或重新匯入訂閱即可；背景排程會自行恢復動態策略組。
-- 無需再次執行安裝腳本，也不需要 Codex 參與。
+| 文档 | 内容 |
+| --- | --- |
+| [docs/技術架構.md](docs/技術架構.md) | 组结构、DNS、规则、双控制器与代码布局 |
+| [docs/安裝與遷移.md](docs/安裝與遷移.md) | 在新机器上安装、迁移与验收步骤 |
+| [docs/項目總結.md](docs/項目總結.md) | 项目背景与实现历程 |
+| [docs/google-observer.md](docs/google-observer.md) | 观察器边界与部署方式 |
+| [egern/README.md](egern/README.md) | 手机端 Egern 移植说明 |
+| [README_EN.md](README_EN.md) | English introduction |
 
-## 回復安裝前狀態
+## 不保证的事项
 
-回復會停止獨立 TUN，因此網路可能短暫中斷。先手動退出 FlClash，再以系統管理員 PowerShell 執行：
+节点出口信誉、服务风控结果、延迟与带宽会随供应商、时间和网络环境变化。本项目能复现的是「检测、累积、排序和自动切换机制」，不能让另一台机器得到完全相同的节点排名，也不能对任何节点做永久、绝对的洁净保证。
 
-```powershell
-.\scripts\Restore-Previous.ps1 -ConfirmRestore
-```
+## 第三方
 
-回復腳本不會替你關閉 FlClash；若偵測到 FlClash 仍在運行，它會拒絕操作。
+`licenses/` 收录 mihomo（GPL-3.0）与 WinSW（MIT）许可证；`egern/modules/` 下各模块按自身 LICENSE 分发，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-更多內容見 [docs/安裝與遷移.md](docs/安裝與遷移.md)、[docs/技術架構.md](docs/技術架構.md) 和 [docs/項目總結.md](docs/項目總結.md)。
-
-## Egern 手機版
-
-`egern/` 提供不依賴 Windows 或本機服務的 Egern 三組策略移植、加密分流 DNS、安全版與经审查的去广告增强版。安装、回滚、第三方许可和真机验收边界见 [egern/README.md](egern/README.md)。
